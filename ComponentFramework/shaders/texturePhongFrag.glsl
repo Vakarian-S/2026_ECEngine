@@ -12,11 +12,13 @@ layout(location = 4) in float lightDistance;
 
 uniform sampler2D myTexture;
 uniform vec4 ambientLightColor;
+uniform vec4 diffuseMaterialColor;
+uniform vec4 specularMaterialColor;
+uniform float specularShininessExponent;
+uniform float lightIntensityMultiplier;
 
 void main() {
-    vec4 ks = vec4(0.3, 0.3, 0.3, 0.0);
-	vec4 kd = vec4(0.6, 0.7, 0.7, 0.0);
-	vec4 kt = texture(myTexture,textureCoords);
+	vec4 textureSampleColor = texture(myTexture, textureCoords);
 
 	vec3 normalizedSurfaceNormal = normalize(vertNormal);
 	vec3 normalizedLightDirection = normalize(lightDir);
@@ -29,11 +31,15 @@ void main() {
 	vec3 reflectionDirection = normalize(reflect(-normalizedLightDirection, normalizedSurfaceNormal));
 
 	float specularFactor  = max(dot(normalizedEyeDirection, reflectionDirection), 0.0);
-	specularFactor  = pow(specularFactor ,14.0);
+	specularFactor  = pow(specularFactor , specularShininessExponent);
 
 	// simple physically-inspired attenuation (inverse square-ish)
 	// add small constant so it doesn't explode when very close
 	float attenuation = 1.0 / (1.0 + 0.09 * lightDistance + 0.032 * lightDistance * lightDistance);
 
-	fragColor = (ambientLightColor + attenuation * ((diffuseFactor * kd) + (specularFactor * ks))) * kt;
+	vec4 directLightComponent =
+	attenuation * lightIntensityMultiplier *
+	((diffuseFactor * diffuseMaterialColor) + (specularFactor * specularMaterialColor));
+
+	fragColor = (ambientLightColor + directLightComponent) * textureSampleColor;
 }

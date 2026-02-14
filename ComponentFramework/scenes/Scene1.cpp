@@ -241,7 +241,8 @@ void Scene1::Render() const
                        camera->GetProjectionMatrix());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera->GetViewMatrix());
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
-                 Vec4(1.0f, 1.0f, 1.0f, 0.0f));
+                 Vec4(0.0f, 1.0f, 0.0f, 0.0f));
+
 
     glUniform3fv(static_cast<GLint>(shader->GetUniformID("cameraPos")), 1,
                  camera->GetComponent<TransformComponent>()->GetPosition());
@@ -259,6 +260,12 @@ void Scene1::Render() const
                        board->GetComponent<TransformComponent>()->GetTransformMatrix());
     glUniform3fv(static_cast<GLint>(shader->GetUniformID("lightPos")), 1,
                  Vec3(0.0f, mainLight->GetComponent<TransformComponent>()->GetPosition().y, 0.0f));
+    glUniform4fv(shader->GetUniformID("diffuseMaterialColor"), 1, Vec4(0.2f, 0.7f, 0.1f, 0.0f));
+    glUniform4fv(shader->GetUniformID("specularMaterialColor"), 1, Vec4(0.01f, 0.3f, 0.01f, 0.0f));
+    glUniform1f(shader->GetUniformID("specularShininessExponent"), 14.0f);
+    glUniform1f(shader->GetUniformID("lightIntensityMultiplier"), 1.0f);
+
+
     glBindTexture(GL_TEXTURE_2D, board->GetComponent<MaterialComponent>()->getTextureID());
     board->GetComponent<MeshComponent>()->Render();
 
