@@ -228,7 +228,7 @@ void Scene1::Update(float deltaTime)
 
 void Scene1::Render() const
 {
-    glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+    glClearColor(0.05f, 0.0f, 0.05f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -240,6 +240,9 @@ void Scene1::Render() const
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
                        camera->GetProjectionMatrix());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera->GetViewMatrix());
+    glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
+                 Vec4(1.0f, 1.0f, 1.0f, 0.0f));
+
     glUniform3fv(static_cast<GLint>(shader->GetUniformID("cameraPos")), 1,
                  camera->GetComponent<TransformComponent>()->GetPosition());
 
@@ -248,6 +251,9 @@ void Scene1::Render() const
                        mainLight->GetModelMatrix());
     glBindTexture(GL_TEXTURE_2D, mainLight->GetComponent<MaterialComponent>()->getTextureID());
     mainLight->GetComponent<MeshComponent>()->Render();
+
+    glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
+                 Vec4(0.05f, 0.0f, 0.05f, 0.0f));
 
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
                        board->GetComponent<TransformComponent>()->GetTransformMatrix());
