@@ -23,13 +23,14 @@ class Scene1 : public Scene
 private:
     CameraActor* camera;
     Actor* board;
+    Quaternion baseBoardOrientationQuaternion;
     Actor* pawn;
 
     Vec3 lightHeight = Vec3(0.0, 0.0, 0.0);
     bool goingUp = true;
 
     /** Light **/
-    LightActor* pointLight;
+    std::vector<LightActor*> pointLights;
 
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
     std::vector<Actor*> pieces;
