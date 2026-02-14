@@ -6,16 +6,14 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 vertNormal;
 layout(location = 1) in vec3 lightDir;
 layout(location = 2) in vec3 eyeDir; 
-layout(location = 3) in vec2 textureCoords;
-layout(location = 4) in float lightDistance;
-
+layout(location = 3) in vec2 textureCoords; 
 
 uniform sampler2D myTexture; 
 
 void main() {
     vec4 ks = vec4(0.3, 0.3, 0.3, 0.0);
 	vec4 kd = vec4(0.6, 0.7, 0.7, 0.0);
-	vec4 ka = 0.0 * kd;
+	vec4 ka = 0.1 * kd;
 	vec4 kt = texture(myTexture,textureCoords); 
 
 	float diff = max(dot(vertNormal, lightDir), 0.0);
@@ -26,10 +24,5 @@ void main() {
 
 	float spec = max(dot(eyeDir, reflection), 0.0);
 	spec = pow(spec,14.0);
-
-	// simple physically-inspired attenuation (inverse square-ish)
-	// add small constant so it doesn't explode when very close
-	float attenuation = 1.0 / (1.0 + 0.09 * lightDistance + 0.032 * lightDistance * lightDistance);
-
-	fragColor = (ka + attenuation * ((diff * kd) + (spec * ks))) * kt;
+	fragColor =  (ka + (diff * kd) + (spec * ks)) * kt;	
 }

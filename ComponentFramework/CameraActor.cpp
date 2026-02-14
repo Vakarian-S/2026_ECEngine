@@ -17,10 +17,12 @@ CameraActor::~CameraActor()
 
 bool CameraActor::OnCreate()
 {
-    const TransformComponent* transformComponent = GetComponent<TransformComponent>();
+    TransformComponent* transformComponent = GetComponent<TransformComponent>();
     if (transformComponent != nullptr)
     {
         viewMatrix = transformComponent->GetTransformMatrix();
+        position = transformComponent->GetPosition();
+        orientation = transformComponent->GetQuaternion();
         viewMatrix.print("View Matrix");
     } 
     return true;

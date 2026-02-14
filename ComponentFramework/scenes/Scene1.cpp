@@ -82,7 +82,7 @@ Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
 bool Scene1::OnCreate()
 {
     camera = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
-    camera->AddComponent<TransformComponent>(nullptr, Vec3(1.5f, -1.0f, -10.0f), Quaternion());
+    camera->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
     camera->OnCreate();
 
     /** Create Board **/
@@ -96,6 +96,17 @@ bool Scene1::OnCreate()
     board->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
     board->OnCreate();
     board->ListComponents();
+
+    mainLight = new Actor(nullptr);
+    mainLight->AddComponent<MeshComponent>(nullptr, "meshes/Sphere.obj");
+    mainLight->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
+    mainLight->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 0.0f, 0.0f),
+                                                QMath::angleAxisRotation(
+                                                    -90.0f, Vec3(1.0f, 0.0f, 0.0f)),
+                                                Vec3(0.5f, 0.5f, 0.5f));
+    mainLight->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
+    mainLight->OnCreate();
+    mainLight->ListComponents();
 
     /** Initialize Meshes **/
     for (auto mesh : {
@@ -130,7 +141,8 @@ bool Scene1::OnCreate()
                                                180.0f, Vec3(0.0f, 1.0f, 0.0f));
                 actor->AddComponent<TransformComponent>(
                     nullptr, Vec3(
-                        GetRelativeTransformOnBoard(chessPiece == chess_pieces::PAWN ? index * 5 + 1 : index * 7, colPosition)),
+                        GetRelativeTransformOnBoard(chessPiece == chess_pieces::PAWN ? index * 5 + 1 : index * 7,
+                                                    colPosition)),
                     rotationByColor
                     ,
                     Vec3(0.15f, 0.15f, 0.15f));
@@ -189,23 +201,58 @@ void Scene1::Update(float deltaTime)
         Vec3 displacement = velocity * CameraSpeed * deltaTime;
         camera->SetView(camera->GetOrientation(), camera->freeCameraMovement(displacement));
     }
+
+    if (mainLight->GetComponent<TransformComponent>()->GetPosition().y > 10.0f)
+    {
+        goingUp = false;
+    }
+    if (mainLight->GetComponent<TransformComponent>()->GetPosition().y < 0.0f)
+    {
+        goingUp = true;
+    }
+
+    auto lightTransform = mainLight->GetComponent<TransformComponent>();
+    auto sign = goingUp ? 1.0f : -1.0f;
+    auto newPosition = Vec3(
+        lightTransform->GetPosition().x,
+        lightTransform->GetPosition().y + sign * deltaTime * 3.0f,
+        lightTransform->GetPosition().z
+    );
+
+    lightTransform->SetTransform(
+        newPosition,
+        lightTransform->GetQuaternion(),
+        lightTransform->GetScale()
+    );
 }
 
 void Scene1::Render() const
 {
-    glClearColor(0.12f, 0.72f, 0.52f, 0.0f);
+    glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
     ShaderComponent* shader = board->GetComponent<ShaderComponent>();
 
+
     glUseProgram(shader->GetProgram());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
                        camera->GetProjectionMatrix());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera->GetViewMatrix());
+    glUniform3fv(static_cast<GLint>(shader->GetUniformID("cameraPos")), 1,
+                 camera->GetComponent<TransformComponent>()->GetPosition());
+
+    /** Render The Light Model before the Light so it doesnt selfShade **/
+    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
+                       mainLight->GetModelMatrix());
+    glBindTexture(GL_TEXTURE_2D, mainLight->GetComponent<MaterialComponent>()->getTextureID());
+    mainLight->GetComponent<MeshComponent>()->Render();
+
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
                        board->GetComponent<TransformComponent>()->GetTransformMatrix());
+    glUniform3fv(static_cast<GLint>(shader->GetUniformID("lightPos")), 1,
+                 Vec3(0.0f, mainLight->GetComponent<TransformComponent>()->GetPosition().y, 0.0f));
     glBindTexture(GL_TEXTURE_2D, board->GetComponent<MaterialComponent>()->getTextureID());
     board->GetComponent<MeshComponent>()->Render();
 

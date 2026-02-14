@@ -24,6 +24,12 @@ private:
     Actor* board;
     Actor* pawn;
 
+    Vec3 lightHeight = Vec3(0.0, 0.0, 0.0);
+    bool goingUp = true;
+
+    /** Light **/
+    Actor* mainLight;
+
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
     std::vector<Actor*> pieces;
 
