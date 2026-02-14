@@ -6,6 +6,7 @@
 #include "../Scene.h"
 #include "../CameraActor.h"
 #include "../MeshComponent.h"
+#include "../actors/LightActor.h"
 
 enum class chess_pieces: uint8_t
 {
@@ -28,7 +29,7 @@ private:
     bool goingUp = true;
 
     /** Light **/
-    Actor* mainLight;
+    LightActor* pointLight;
 
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
     std::vector<Actor*> pieces;

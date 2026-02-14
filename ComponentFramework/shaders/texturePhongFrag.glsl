@@ -16,6 +16,9 @@ uniform vec4 diffuseMaterialColor;
 uniform vec4 specularMaterialColor;
 uniform float specularShininessExponent;
 uniform float lightIntensityMultiplier;
+uniform float attenuationConstant;
+uniform float attenuationLinear;
+uniform float attenuationQuadratic;
 
 void main() {
 	vec4 textureSampleColor = texture(myTexture, textureCoords);

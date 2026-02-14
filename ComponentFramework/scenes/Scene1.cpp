@@ -81,6 +81,7 @@ Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
 
 bool Scene1::OnCreate()
 {
+    /** Setup Camera **/
     camera = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
     camera->OnCreate();
@@ -97,19 +98,19 @@ bool Scene1::OnCreate()
     board->OnCreate();
     board->ListComponents();
 
-    mainLight = new Actor(nullptr);
-    mainLight->AddComponent<MeshComponent>(nullptr, "meshes/Sphere.obj");
-    mainLight->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
-    mainLight->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 0.0f, 0.0f),
-                                                QMath::angleAxisRotation(
-                                                    -90.0f, Vec3(1.0f, 0.0f, 0.0f)),
-                                                Vec3(0.5f, 0.5f, 0.5f));
-    mainLight->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
-    mainLight->OnCreate();
-    mainLight->ListComponents();
+    /** Point Light, Testing the fallback for when there is no transform given **/
+    pointLight = new LightActor(nullptr);
+    pointLight->AddComponent<MeshComponent>(nullptr, "meshes/Sphere.obj");
+    pointLight->AddComponent<
+        ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
+    pointLight->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
+    pointLight->SetDiffuseLightColor(Vec3(0.7f, 0.0f, 0.4f));
+    pointLight->SetSpecularLightColor(Vec3(1.0f, 0.5f, 0.5f));
+    pointLight->OnCreate();
+    pointLight->ListComponents();
 
     /** Initialize Meshes **/
-    for (auto mesh : {
+    for (const auto mesh : {
              chess_pieces::KING, chess_pieces::PAWN, chess_pieces::ROOK, chess_pieces::QUEEN, chess_pieces::BISHOP,
              chess_pieces::KNIGHT
          })
@@ -119,6 +120,7 @@ bool Scene1::OnCreate()
         chessPieceMeshes.insert({chess_pieces::KING, meshComponent});
     }
 
+    /** Setup the Pieces on the board Iteration Galore **/
     int index = 0;
     for (auto const& color : {"textures/White Chess Base Colour.png", "textures/Black Chess Base Colour.png"})
     {
@@ -202,20 +204,20 @@ void Scene1::Update(float deltaTime)
         camera->SetView(camera->GetOrientation(), camera->freeCameraMovement(displacement));
     }
 
-    if (mainLight->GetComponent<TransformComponent>()->GetPosition().y > 10.0f)
+    if (pointLight->GetComponent<TransformComponent>()->GetPosition().y > 10.0f)
     {
         goingUp = false;
     }
-    if (mainLight->GetComponent<TransformComponent>()->GetPosition().y < 0.0f)
+    if (pointLight->GetComponent<TransformComponent>()->GetPosition().y < 0.0f)
     {
         goingUp = true;
     }
 
-    auto lightTransform = mainLight->GetComponent<TransformComponent>();
+    auto lightTransform = pointLight->GetComponent<TransformComponent>();
     auto sign = goingUp ? 1.0f : -1.0f;
     auto newPosition = Vec3(
         lightTransform->GetPosition().x,
-        lightTransform->GetPosition().y + sign * deltaTime * 3.0f,
+        lightTransform->GetPosition().y + sign * deltaTime * 10.0f,
         lightTransform->GetPosition().z
     );
 
@@ -241,31 +243,35 @@ void Scene1::Render() const
                        camera->GetProjectionMatrix());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera->GetViewMatrix());
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
-                 Vec4(0.0f, 1.0f, 0.0f, 0.0f));
+                 Vec4(1.0f, 0.0f, 0.5f, 0.0f));
 
 
     glUniform3fv(static_cast<GLint>(shader->GetUniformID("cameraPos")), 1,
                  camera->GetComponent<TransformComponent>()->GetPosition());
 
-    /** Render The Light Model before the Light so it doesnt selfShade **/
+    /** Rendering Point Lights **/
+
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
-                       mainLight->GetModelMatrix());
-    glBindTexture(GL_TEXTURE_2D, mainLight->GetComponent<MaterialComponent>()->getTextureID());
-    mainLight->GetComponent<MeshComponent>()->Render();
+                       pointLight->GetModelMatrix());
+    glBindTexture(GL_TEXTURE_2D, pointLight->GetComponent<MaterialComponent>()->getTextureID());
+    pointLight->GetComponent<MeshComponent>()->Render();
+    pointLight->ApplyPointLightUniformsToShaderProgram(shader);
 
+    
+    //glUniform4fv(shader->GetUniformID("diffuseMaterialColor"), 1, Vec4(0.2f, 0.7f, 0.1f, 0.0f));
+    //glUniform4fv(shader->GetUniformID("specularMaterialColor"), 1, Vec4(0.01f, 0.3f, 0.01f, 0.0f));
+    //glUniform1f(shader->GetUniformID("specularShininessExponent"), 14.0f);
+    //glUniform1f(shader->GetUniformID("lightIntensityMultiplier"), 1.0f);
+    
+    /** End Point Lights **/
+
+
+    
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
-                 Vec4(0.05f, 0.0f, 0.05f, 0.0f));
-
+                    Vec4(0.05f, 0.0f, 0.05f, 0.0f));
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
                        board->GetComponent<TransformComponent>()->GetTransformMatrix());
-    glUniform3fv(static_cast<GLint>(shader->GetUniformID("lightPos")), 1,
-                 Vec3(0.0f, mainLight->GetComponent<TransformComponent>()->GetPosition().y, 0.0f));
-    glUniform4fv(shader->GetUniformID("diffuseMaterialColor"), 1, Vec4(0.2f, 0.7f, 0.1f, 0.0f));
-    glUniform4fv(shader->GetUniformID("specularMaterialColor"), 1, Vec4(0.01f, 0.3f, 0.01f, 0.0f));
-    glUniform1f(shader->GetUniformID("specularShininessExponent"), 14.0f);
-    glUniform1f(shader->GetUniformID("lightIntensityMultiplier"), 1.0f);
-
-
+    
     glBindTexture(GL_TEXTURE_2D, board->GetComponent<MaterialComponent>()->getTextureID());
     board->GetComponent<MeshComponent>()->Render();
 
