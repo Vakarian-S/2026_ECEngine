@@ -36,8 +36,8 @@ public:
             return;
         }
         components.push_back(component_);
-    }   
-    
+    }
+
 
     template <typename ComponentTemplate, typename... Args>
     void AddComponent(Args&&... args_)
@@ -53,7 +53,7 @@ public:
     }
 
     template <typename ComponentTemplate>
-    Ref<ComponentTemplate> GetComponent() const
+    [[nodiscard]] Ref<ComponentTemplate> GetComponent() const
     {
         for (auto component : components)
         {
@@ -72,7 +72,7 @@ public:
     {
         components.clear();
     }
-    
+
 
     void ListComponents() const;
     MATH::Matrix4 GetModelMatrix();

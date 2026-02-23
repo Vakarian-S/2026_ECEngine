@@ -8,7 +8,7 @@
 #include "../MeshComponent.h"
 #include "../actors/LightActor.h"
 
-enum class chess_pieces: uint8_t
+enum class Chess_pieces: uint8_t
 {
     PAWN = 0,
     KNIGHT,
@@ -21,39 +21,61 @@ enum class chess_pieces: uint8_t
 class Scene1 : public Scene
 {
 private:
+    /** Camera **/
     CameraActor* camera;
+
+    /** Board **/
     Actor* board;
     Quaternion baseBoardOrientationQuaternion;
-    Actor* pawn;
-
-    Vec3 lightHeight = Vec3(0.0, 0.0, 0.0);
-    bool goingUp = true;
 
     /** Light **/
     std::vector<LightActor*> pointLights;
 
+    Vec3 lightHeight = Vec3(0.0, 0.0, 0.0);
+    bool goingUp = true;
+
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
-    std::vector<Actor*> pieces;
+    std::vector<Actor*> chessPieceActors;
 
     /** Meshes **/
-    std::unordered_map<chess_pieces, std::string> meshFilenames;
-    std::unordered_map<chess_pieces, Ref<MeshComponent>> chessPieceMeshes;
-
-
-    std::vector<Actor*> whitePieces;
-    std::vector<Actor*> blackPieces;
-    std::array<std::array<int, 8>, 8> boardPositions{};
+    std::unordered_map<Chess_pieces, std::string> meshFilenames;
+    std::unordered_map<Chess_pieces, Ref<MeshComponent>> chessPieceMeshes;
 
 public:
     Scene1();
-    void MoveActorBy(const Actor* actor, const MATH::Vec3& delta);
-    std::vector<int> GetColPositionListByPiece(chess_pieces pieceName);
-    const char* GetMeshNameByPiece(chess_pieces pieceName);
-    MATH::Vec3 GetRelativeTransformOnBoard(int row, int col);
     ~Scene1() override = default;
+
+
     bool OnCreate() override;
     void OnDestroy() override;
     void HandleEvents(const SDL_Event& sdlEvent) override;
     void Update(float deltaTime) override;
     void Render() const override;
+
+public:
+    /**
+     * Retrieves a list of column positions associated with a specific chess piece.
+     *
+     * @param pieceName The name of the chess piece for which the column positions are required.
+     * @return A vector of integers representing the column positions where the specified chess piece can be located.
+     *         If the piece name is not recognized, an empty vector is returned.
+     */
+    static std::vector<int> GetColPositionListByPiece(Chess_pieces pieceName);
+    /**
+     * Moves the specified actor by a given delta.
+     *
+     * @param actor The actor to move. This should not be null and must have a TransformComponent.
+     * @param delta The vector representing the positional change to apply to the actor's current position.
+     */
+    static void MoveActorBy(const Actor* actor, const Vec3& delta);
+    /**
+     * Calculates the relative transform for a specific position on the board
+     * based on the given row and column.
+     *
+     * @param row The row index of the position on the board.
+     * @param col The column index of the position on the board.
+     * @return A Vec3 representing the relative transform at the specified position
+     *         on the board, including the x, y, and z coordinates.
+     */
+    static Vec3 GetRelativeTransformOnBoard(int row, int col);
 };

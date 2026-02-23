@@ -22,27 +22,26 @@ struct PointLightParameters
 class LightActor : public Actor
 {
 private:
-    PointLightParameters pointLightParameters;
+    PointLightParameters point_light_parameters_;
 
 public:
-    LightActor(Component* parentComponent);
+    explicit LightActor(Component* parentComponent);
     bool OnCreate() override;
     void Update(const float deltaTime) override;
 
-    // Light parameter accessors (small and explicit)
     void SetDiffuseLightColor(const MATH::Vec3& diffuseLightColor)
     {
-        pointLightParameters.diffuseLightColor = diffuseLightColor;
+        point_light_parameters_.diffuseLightColor = diffuseLightColor;
     }
 
     void SetSpecularLightColor(const MATH::Vec3& specularLightColor)
     {
-        pointLightParameters.specularLightColor = specularLightColor;
+        point_light_parameters_.specularLightColor = specularLightColor;
     }
 
     void SetLightIntensityMultiplier(const float lightIntensityMultiplier)
     {
-        pointLightParameters.lightIntensityMultiplier = lightIntensityMultiplier;
+        point_light_parameters_.lightIntensityMultiplier = lightIntensityMultiplier;
     }
 
     void SetAttenuationParameters(
@@ -51,14 +50,14 @@ public:
         const float attenuationQuadratic
     )
     {
-        pointLightParameters.attenuationConstant = attenuationConstant;
-        pointLightParameters.attenuationLinear = attenuationLinear;
-        pointLightParameters.attenuationQuadratic = attenuationQuadratic;
+        point_light_parameters_.attenuationConstant = attenuationConstant;
+        point_light_parameters_.attenuationLinear = attenuationLinear;
+        point_light_parameters_.attenuationQuadratic = attenuationQuadratic;
     }
 
     [[nodiscard]] const PointLightParameters& GetPointLightParameters() const
     {
-        return pointLightParameters;
+        return point_light_parameters_;
     }
 
     void ApplyPointLightUniformsToShaderProgram(ShaderComponent* shader) const;

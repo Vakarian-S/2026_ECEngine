@@ -13,9 +13,9 @@ Scene1::Scene1()
 }
 
 
-void Scene1::MoveActorBy(const Actor* actor, const MATH::Vec3& delta)
+void Scene1::MoveActorBy(const Actor* actor, const Vec3& delta)
 {
-    Ref transform = actor->GetComponent<TransformComponent>();
+    const Ref transform = actor->GetComponent<TransformComponent>();
     const Vec3 position = transform->GetPosition();
 
     transform->SetTransform(
@@ -25,50 +25,31 @@ void Scene1::MoveActorBy(const Actor* actor, const MATH::Vec3& delta)
     );
 }
 
-std::vector<int> Scene1::GetColPositionListByPiece(const chess_pieces pieceName)
+std::vector<int> Scene1::GetColPositionListByPiece(const Chess_pieces pieceName)
 {
     switch (pieceName)
     {
-    case chess_pieces::PAWN:
+    case Chess_pieces::PAWN:
         return {0, 1, 2, 3, 4, 5, 6, 7};
-    case chess_pieces::KNIGHT:
+    case Chess_pieces::KNIGHT:
         return {1, 6};
-    case chess_pieces::BISHOP:
+    case Chess_pieces::BISHOP:
         return {2, 5};
-    case chess_pieces::ROOK:
+    case Chess_pieces::ROOK:
         return {0, 7};
-    case chess_pieces::QUEEN:
+    case Chess_pieces::QUEEN:
         return {3};
-    case chess_pieces::KING:
+    case Chess_pieces::KING:
         return {4};
     default:
         return {};
     }
 }
 
-const char* Scene1::GetMeshNameByPiece(const chess_pieces pieceName)
-{
-    switch (pieceName)
-    {
-    case chess_pieces::PAWN:
-        return "meshes/Pawn.obj";
-    case chess_pieces::KNIGHT:
-        return "meshes/Knight.obj";
-    case chess_pieces::BISHOP:
-        return "meshes/Bishop.obj";
-    case chess_pieces::ROOK:
-        return "meshes/Rook.obj";
-    case chess_pieces::QUEEN:
-        return "meshes/Queen.obj";
-    case chess_pieces::KING:
-        return "meshes/King.obj";
-    }
-    return "meshes/Pawn.obj";
-}
 
 Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
 {
-    float cellSize = 1.25f;
+    constexpr float cellSize = 1.25f;
     /** Move to 0,0 **/
     float xPositionOnBoard = -cellSize * 3.0f - cellSize / 2.0f;
     float yPositionOnBoard = -cellSize * 3.0f - cellSize / 2.0f;
@@ -82,26 +63,6 @@ Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
 
 bool Scene1::OnCreate()
 {
-    /** Setup Mesh Filenames **/
-    meshFilenames = {
-        {chess_pieces::BISHOP, "meshes/Bishop.obj"},
-        {chess_pieces::KING, "meshes/King.obj"},
-        {chess_pieces::KNIGHT, "meshes/Knight.obj"},
-        {chess_pieces::PAWN, "meshes/Pawn.obj"},
-        {chess_pieces::QUEEN, "meshes/Queen.obj"},
-        {chess_pieces::ROOK, "meshes/Rook.obj"}
-    };
-
-    /** Make a component for each Mesh **/
-    for (auto const& chessPiece : {
-             chess_pieces::KING, chess_pieces::PAWN, chess_pieces::ROOK, chess_pieces::QUEEN, chess_pieces::BISHOP,
-             chess_pieces::KNIGHT
-         })
-    {
-        auto meshActor = std::make_shared<MeshComponent>(nullptr, meshFilenames[chessPiece].c_str());
-        chessPieceMeshes[chessPiece] = meshActor;
-    }
-
     /** Setup Camera **/
     camera = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
@@ -120,6 +81,8 @@ bool Scene1::OnCreate()
     board->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
     board->OnCreate();
     board->ListComponents();
+    
+    
     auto light1 = new LightActor(nullptr);
     light1->AddComponent<TransformComponent>(nullptr, Vec3(5.0f, 0.0f, 0.0f),
                                              Quaternion(),
@@ -149,16 +112,36 @@ bool Scene1::OnCreate()
     pointLights.push_back(light1);
     pointLights.push_back(light2);
 
+    /** Setup Mesh Filenames **/
+    meshFilenames = {
+        {Chess_pieces::BISHOP, "meshes/Bishop.obj"},
+        {Chess_pieces::KING, "meshes/King.obj"},
+        {Chess_pieces::KNIGHT, "meshes/Knight.obj"},
+        {Chess_pieces::PAWN, "meshes/Pawn.obj"},
+        {Chess_pieces::QUEEN, "meshes/Queen.obj"},
+        {Chess_pieces::ROOK, "meshes/Rook.obj"}
+    };
+
+    /** Make a component for each Mesh **/
+    for (auto const& chessPiece : {
+             Chess_pieces::KING, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
+             Chess_pieces::KNIGHT
+         })
+    {
+        const auto meshActor = std::make_shared<MeshComponent>(nullptr, meshFilenames[chessPiece].c_str());
+        chessPieceMeshes[chessPiece] = meshActor;
+    }
+
     /** Setup the Pieces on the board Iteration Galore **/
     int index = 0;
     for (auto const& color : {"textures/White Chess Base Colour.png", "textures/Black Chess Base Colour.png"})
     {
         for (const auto chessPiece : {
-                 chess_pieces::KING, chess_pieces::PAWN, chess_pieces::ROOK, chess_pieces::QUEEN, chess_pieces::BISHOP,
-                 chess_pieces::KNIGHT
+                 Chess_pieces::KING, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
+                 Chess_pieces::KNIGHT
              })
         {
-            for (auto colPosition : GetColPositionListByPiece(chessPiece))
+            for (const auto colPosition : GetColPositionListByPiece(chessPiece))
             {
                 auto actor = new Actor(board);
                 Ref<MeshComponent> mesh = chessPieceMeshes[chessPiece];
@@ -173,7 +156,7 @@ bool Scene1::OnCreate()
                                                180.0f, Vec3(0.0f, 1.0f, 0.0f));
                 actor->AddComponent<TransformComponent>(
                     nullptr, Vec3(
-                        GetRelativeTransformOnBoard(chessPiece == chess_pieces::PAWN ? index * 5 + 1 : index * 7,
+                        GetRelativeTransformOnBoard(chessPiece == Chess_pieces::PAWN ? index * 5 + 1 : index * 7,
                                                     colPosition)),
                     rotationByColor
                     ,
@@ -181,18 +164,18 @@ bool Scene1::OnCreate()
                 actor->AddComponent<MaterialComponent>(nullptr, color);
                 actor->OnCreate();
                 actor->ListComponents();
-                pieces.push_back(actor);
+                chessPieceActors.push_back(actor);
             }
         }
         index++;
     }
-
 
     return true;
 }
 
 void Scene1::OnDestroy()
 {
+    chessPieceActors.clear();
 }
 
 void Scene1::HandleEvents(const SDL_Event& sdlEvent)
@@ -426,7 +409,7 @@ void UploadPointLightsToShader(
         clampedPointLightCount,
         pointLightAttenuationQuadraticPackedArray.data()
     );
-    glUniform1f(static_cast<GLuint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
+    glUniform1f(static_cast<GLint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
 };
 
 void Scene1::Render() const
@@ -436,7 +419,8 @@ void Scene1::Render() const
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    Ref shader = board->GetComponent<ShaderComponent>();
+    const Ref<ShaderComponent> shader = board->GetComponent<ShaderComponent>();
+    auto myId = shader->GetProgram();
 
 
     glUseProgram(shader->GetProgram());
@@ -482,7 +466,7 @@ void Scene1::Render() const
     board->GetComponent<MeshComponent>()->Render();
 
     /** Render all Pieces **/
-    for (const auto piece : pieces)
+    for (const auto piece : chessPieceActors)
     {
         glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
                            piece->GetModelMatrix());
