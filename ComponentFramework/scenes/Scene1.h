@@ -36,7 +36,8 @@ private:
     std::vector<Actor*> pieces;
 
     /** Meshes **/
-    std::unordered_map<chess_pieces, std::shared_ptr<MeshComponent>> chessPieceMeshes;
+    std::unordered_map<chess_pieces, std::string> meshFilenames;
+    std::unordered_map<chess_pieces, Ref<MeshComponent>> chessPieceMeshes;
 
 
     std::vector<Actor*> whitePieces;

@@ -79,8 +79,29 @@ Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
     return {xPositionOnBoard, yPositionOnBoard, 0.0f};
 }
 
+
 bool Scene1::OnCreate()
 {
+    /** Setup Mesh Filenames **/
+    meshFilenames = {
+        {chess_pieces::BISHOP, "meshes/Bishop.obj"},
+        {chess_pieces::KING, "meshes/King.obj"},
+        {chess_pieces::KNIGHT, "meshes/Knight.obj"},
+        {chess_pieces::PAWN, "meshes/Pawn.obj"},
+        {chess_pieces::QUEEN, "meshes/Queen.obj"},
+        {chess_pieces::ROOK, "meshes/Rook.obj"}
+    };
+
+    /** Make a component for each Mesh **/
+    for (auto const& chessPiece : {
+             chess_pieces::KING, chess_pieces::PAWN, chess_pieces::ROOK, chess_pieces::QUEEN, chess_pieces::BISHOP,
+             chess_pieces::KNIGHT
+         })
+    {
+        auto meshActor = std::make_shared<MeshComponent>(nullptr, meshFilenames[chessPiece].c_str());
+        chessPieceMeshes[chessPiece] = meshActor;
+    }
+
     /** Setup Camera **/
     camera = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
@@ -128,18 +149,6 @@ bool Scene1::OnCreate()
     pointLights.push_back(light1);
     pointLights.push_back(light2);
 
-
-    /** Initialize Meshes **/
-    for (const auto mesh : {
-             chess_pieces::KING, chess_pieces::PAWN, chess_pieces::ROOK, chess_pieces::QUEEN, chess_pieces::BISHOP,
-             chess_pieces::KNIGHT
-         })
-    {
-        auto meshComponent =
-            std::make_shared<MeshComponent>(nullptr, GetMeshNameByPiece(mesh));
-        chessPieceMeshes.insert({chess_pieces::KING, meshComponent});
-    }
-
     /** Setup the Pieces on the board Iteration Galore **/
     int index = 0;
     for (auto const& color : {"textures/White Chess Base Colour.png", "textures/Black Chess Base Colour.png"})
@@ -152,7 +161,8 @@ bool Scene1::OnCreate()
             for (auto colPosition : GetColPositionListByPiece(chessPiece))
             {
                 auto actor = new Actor(board);
-                actor->AddComponent<MeshComponent>(nullptr, GetMeshNameByPiece(chessPiece));
+                Ref<MeshComponent> mesh = chessPieceMeshes[chessPiece];
+                actor->AddComponent<MeshComponent>(chessPieceMeshes[chessPiece]);
                 actor->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl",
                                                      "shaders/texturePhongFrag.glsl");
                 auto rotationByColor = index
@@ -255,7 +265,7 @@ void Scene1::Update(float deltaTime)
         QMath::slerp(leftOffsetRotationQuaternion, rightOffsetRotationQuaternion, interpolationParameter);
 
     Quaternion finalBoardOrientationQuaternion =
-         animatedOffsetRotationQuaternion *baseBoardOrientationQuaternion;
+        animatedOffsetRotationQuaternion * baseBoardOrientationQuaternion;
 
     board->GetComponent<TransformComponent>()->SetQuaternion(finalBoardOrientationQuaternion);
 
@@ -374,7 +384,7 @@ void UploadPointLightsToShader(
         pointLightAttenuationLinearPackedArray.push_back(pointLightParameters.attenuationLinear);
         pointLightAttenuationQuadraticPackedArray.push_back(pointLightParameters.attenuationQuadratic);
     }
-    
+
     glUniform3fv(
         static_cast<GLint>(shader->GetUniformID("pointLightWorldPositionArray[0]")),
         clampedPointLightCount,

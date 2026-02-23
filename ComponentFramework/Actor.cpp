@@ -17,7 +17,7 @@ bool Actor::OnCreate()
     Debug::Info("Loading assets for Actor: ", __FILE__, __LINE__);
     for (auto component : components)
     {
-        if (component->OnCreate() == false)
+        if (component.get()->OnCreate() == false)
         {
             Debug::Error("Loading assets for Actor/Components: ", __FILE__, __LINE__);
             isCreated = false;
