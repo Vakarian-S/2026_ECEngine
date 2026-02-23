@@ -15,7 +15,7 @@ Scene1::Scene1()
 
 void Scene1::MoveActorBy(const Actor* actor, const MATH::Vec3& delta)
 {
-    TransformComponent* transform = actor->GetComponent<TransformComponent>();
+    Ref transform = actor->GetComponent<TransformComponent>();
     const Vec3 position = transform->GetPosition();
 
     transform->SetTransform(
@@ -289,7 +289,7 @@ void Scene1::Update(float deltaTime)
 }
 
 void UploadPointLightsToShader(
-    ShaderComponent* shader,
+    Ref<ShaderComponent> shader,
     const std::vector<LightActor*>& pointLightActorList
 )
 {
@@ -352,7 +352,7 @@ void UploadPointLightsToShader(
             continue;
         }
 
-        const TransformComponent* transformComponent = pointLightActor->GetComponent<TransformComponent>();
+        const Ref transformComponent = pointLightActor->GetComponent<TransformComponent>();
         const Vec3 pointLightWorldPosition = transformComponent->GetPosition();
 
         const PointLightParameters& pointLightParameters = pointLightActor->GetPointLightParameters();
@@ -426,7 +426,7 @@ void Scene1::Render() const
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    ShaderComponent* shader = board->GetComponent<ShaderComponent>();
+    Ref shader = board->GetComponent<ShaderComponent>();
 
 
     glUseProgram(shader->GetProgram());

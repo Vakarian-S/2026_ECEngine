@@ -17,7 +17,7 @@ CameraActor::~CameraActor()
 
 bool CameraActor::OnCreate()
 {
-    TransformComponent* transformComponent = GetComponent<TransformComponent>();
+    Ref transformComponent = GetComponent<TransformComponent>();
     if (transformComponent != nullptr)
     {
         viewMatrix = transformComponent->GetTransformMatrix();

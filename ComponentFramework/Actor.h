@@ -15,7 +15,7 @@ class Actor : public Component
     MATH::Matrix4 modelMatrix;
 
 protected:
-    std::vector<Component*> components;
+    std::vector<std::shared_ptr<Component>> components;
 
 public:
     Actor(Component* parent_);
@@ -25,46 +25,54 @@ public:
     virtual void Update(const float deltaTime) override;
     virtual void Render() const override;
 
-    template <typename ComponentTemplate, typename... Args>
-    void AddComponent(ComponentTemplate* componentObject)
+    template <typename ComponentTemplate>
+    void AddComponent(Ref<ComponentTemplate> component_)
     {
-        components.push_back(componentObject);
-    }
+        if (GetComponent<ComponentTemplate>().get() != nullptr)
+        {
+#ifdef _DEBUG
+            std::cerr << "WARNING: Trying to add a component type that is already added - ignored\n";
+#endif
+            return;
+        }
+        components.push_back(component_);
+    }   
     
+
     template <typename ComponentTemplate, typename... Args>
     void AddComponent(Args&&... args_)
     {
-        ComponentTemplate* componentObject = new ComponentTemplate(std::forward<Args>(args_)...);
-        components.push_back(componentObject);
+        if (GetComponent<ComponentTemplate>().get() != nullptr)
+        {
+#ifdef _DEBUG
+            std::cerr << "WARNING: Trying to add a component type that is already added - ignored\n";
+#endif
+            return;
+        }
+        components.push_back(std::make_shared<ComponentTemplate>(std::forward<Args>(args_)...));
     }
 
     template <typename ComponentTemplate>
-    ComponentTemplate* GetComponent() const
+    Ref<ComponentTemplate> GetComponent() const
     {
         for (auto component : components)
         {
-            if (dynamic_cast<ComponentTemplate*>(component) != nullptr)
+            if (dynamic_cast<ComponentTemplate*>(component.get()))
             {
-                return dynamic_cast<ComponentTemplate*>(component);
+                /// This is a dynamic cast designed for shared_ptr's
+                /// https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast
+                return std::dynamic_pointer_cast<ComponentTemplate>(component);
             }
         }
-        return nullptr;
+        return Ref<ComponentTemplate>(nullptr);
     }
 
     template <typename ComponentTemplate>
-    void RemoveComponent()
+    void RemoveAllComponents()
     {
-        for (size_t i = 0; i < components.size(); i++)
-        {
-            if (dynamic_cast<ComponentTemplate*>(components[i]) != nullptr)
-            {
-                components[i]->OnDestroy();
-                delete components[i];
-                components.erase(components.begin() + i);
-                break;
-            }
-        }
+        components.clear();
     }
+    
 
     void ListComponents() const;
     MATH::Matrix4 GetModelMatrix();

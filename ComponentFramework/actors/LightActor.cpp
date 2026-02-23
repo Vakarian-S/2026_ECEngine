@@ -12,7 +12,7 @@ LightActor::LightActor(Component* parentComponent)
 
 bool LightActor::OnCreate()
 {
-    TransformComponent* transformComponent = GetComponent<TransformComponent>();
+    Ref transformComponent = GetComponent<TransformComponent>();
     if (transformComponent == nullptr)
     {
         TransformComponent* newTransform = new TransformComponent(nullptr, Vec3(0.0f, 0.0f, 0.0f),

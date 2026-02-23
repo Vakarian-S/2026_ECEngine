@@ -58,7 +58,7 @@ void Actor::RemoveAllComponents()
 void Actor::ListComponents() const
 {
     std::cout << typeid(*this).name() << " contains the following components:\n";
-    for (Component* component : components)
+    for (auto component : components)
     {
         std::cout << typeid(*component).name() << std::endl;
     }
@@ -67,7 +67,7 @@ void Actor::ListComponents() const
 
 Matrix4 Actor::GetModelMatrix()
 {
-    const TransformComponent* transform = GetComponent<TransformComponent>();
+    Ref transform = GetComponent<TransformComponent>();
     if (transform)
     {
         modelMatrix = transform->GetTransformMatrix();

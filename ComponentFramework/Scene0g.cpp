@@ -14,7 +14,7 @@
 
 void Scene0g::MoveActorBy(const MATH::Vec3& delta)
 {
-    TransformComponent* transform = actor->GetComponent<TransformComponent>();
+    Ref transform = actor->GetComponent<TransformComponent>();
     const Vec3 position = transform->GetPosition();
 
     transform->SetTransform(
@@ -221,7 +221,7 @@ void Scene0g::Update(const float deltaTime)
         const float yawDeltaDegrees = yawInput * yawSpeedDegreesPerSecond * deltaTime;
         const float pitchDeltaDegrees = pitchInput * pitchSpeedDegreesPerSecond * deltaTime;
 
-        TransformComponent* transform = actor->GetComponent<TransformComponent>();
+        Ref transform = actor->GetComponent<TransformComponent>();
         const Quaternion currentRotation = transform->GetQuaternion();
 
         const Quaternion yawDelta = QMath::angleAxisRotation(yawDeltaDegrees, Vec3(0.0f, 1.0f, 0.0f));
@@ -247,7 +247,7 @@ void Scene0g::Render() const
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    ShaderComponent* shader = actor->GetComponent<ShaderComponent>();
+    Ref shader = actor->GetComponent<ShaderComponent>();
 
     glUseProgram(shader->GetProgram());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
