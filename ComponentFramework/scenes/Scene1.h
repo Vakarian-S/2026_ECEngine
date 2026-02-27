@@ -25,17 +25,17 @@ private:
     CameraActor* camera_;
 
     /** Board **/
-    std::shared_ptr<Actor> board_;
+    Ref<Actor> board_;
     Quaternion base_board_orientation_quaternion_;
 
     /** Light **/
-    std::vector<LightActor*> point_lights_;
+    std::vector<Ref<LightActor>> point_lights_;
 
     Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
     bool going_up_ = true;
 
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
-    std::vector<Actor*> chess_piece_actors_;
+    std::vector<Ref<Actor>> chess_piece_actors_;
 
     /** Meshes **/
     std::unordered_map<Chess_pieces, std::string> mesh_filenames_;

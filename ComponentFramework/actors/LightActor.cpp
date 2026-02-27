@@ -5,7 +5,7 @@
 #include "../ShaderComponent.h"
 #include "../TransformComponent.h"
 
-LightActor::LightActor(std::shared_ptr<Component> parentComponent)
+LightActor::LightActor(Ref<Component> parentComponent)
     : Actor(parentComponent)
 {
 }

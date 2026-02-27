@@ -1,6 +1,6 @@
 #include "MaterialComponent.h"
 #include <SDL_image.h>
-MaterialComponent::MaterialComponent(std::shared_ptr<Component> parent_,const char* filename_):
+MaterialComponent::MaterialComponent(Ref<Component> parent_,const char* filename_):
 	Component(parent_), textureID(0), filename(filename_) {}
 
 MaterialComponent::~MaterialComponent() {

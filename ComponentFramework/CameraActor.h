@@ -14,7 +14,7 @@ private:
     MATH::Vec3 position;
 
 public:
-    CameraActor(std::shared_ptr<Actor> parent, float fieldOfView, float aspectRatio, float near, float far);
+    CameraActor(Ref<Actor> parent, float fieldOfView, float aspectRatio, float near, float far);
     ~CameraActor();
     bool OnCreate() override;
     MATH::Matrix4 GetProjectionMatrix() { return projectionMatrix; }

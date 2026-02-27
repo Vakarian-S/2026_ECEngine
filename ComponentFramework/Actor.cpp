@@ -7,7 +7,7 @@
 
 class TransformComponent;
 
-Actor::Actor(std::shared_ptr<Component> parent_): Component(parent_)
+Actor::Actor(Ref<Component> parent_) : Component(parent_)
 {
 }
 
@@ -76,9 +76,9 @@ Matrix4 Actor::GetModelMatrix()
     {
         modelMatrix.loadIdentity();
     }
-    if (parent)
+    if (auto parentPtr = parent.lock())
     {
-        modelMatrix = dynamic_cast<Actor*>(parent.get())->GetModelMatrix() * modelMatrix;
+        modelMatrix = dynamic_cast<Actor*>(parentPtr.get())->GetModelMatrix() * modelMatrix;
     }
     return modelMatrix;
 }

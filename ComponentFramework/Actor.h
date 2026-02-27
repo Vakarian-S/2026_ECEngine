@@ -15,10 +15,10 @@ class Actor : public Component
     MATH::Matrix4 modelMatrix;
 
 protected:
-    std::vector<std::shared_ptr<Component>> components;
+    std::vector<Ref<Component>> components;
 
 public:
-    Actor(std::shared_ptr<Component> parent_);
+    Actor(Ref<Component> parent_);
     ~Actor();
     virtual bool OnCreate() override;
     virtual void OnDestroy() override;

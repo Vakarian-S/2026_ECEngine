@@ -83,7 +83,7 @@ bool Scene1::OnCreate()
     board_->ListComponents();
 
 
-    auto light1 = new LightActor(nullptr);
+    auto light1 = std::make_shared<LightActor>(nullptr);
     light1->AddComponent<TransformComponent>(nullptr, Vec3(5.0f, 0.0f, 0.0f),
                                              Quaternion(),
                                              Vec3(0.5f, 0.5f, 0.5f));
@@ -96,7 +96,7 @@ bool Scene1::OnCreate()
     light1->OnCreate();
     light1->ListComponents();
 
-    auto light2 = new LightActor(nullptr);
+    auto light2 = std::make_shared<LightActor>(nullptr);
     light2->AddComponent<TransformComponent>(nullptr, Vec3(-5.0f, 0.0f, 0.0f),
                                              Quaternion(),
                                              Vec3(0.5f, 0.5f, 0.5f));
@@ -143,7 +143,7 @@ bool Scene1::OnCreate()
         {
             for (const auto colPosition : GetColPositionListByPiece(chessPiece))
             {
-                auto actor = new Actor(board_);
+                auto actor = std::make_shared<Actor>(board_);
                 Ref<MeshComponent> mesh = chess_piece_meshes_[chessPiece];
                 actor->AddComponent<MeshComponent>(chess_piece_meshes_[chessPiece]);
                 actor->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl",
@@ -282,136 +282,139 @@ void Scene1::Update(float deltaTime)
     }
 }
 
-void UploadPointLightsToShader(
-    Ref<ShaderComponent> shader,
-    const std::vector<LightActor*>& pointLightActorList
-)
+namespace
 {
-    if (shader == nullptr)
+    void UploadPointLightsToShader(
+        Ref<ShaderComponent> shader,
+        const std::vector<Ref<LightActor>>& pointLightActorList
+    )
     {
-        return;
-    }
-
-    const int requestedPointLightCount = static_cast<int>(pointLightActorList.size());
-    const int clampedPointLightCount = std::max(0, std::min(requestedPointLightCount, 8));
-
-    /** If there are no lights, still upload the count so the shader loop does not run. **/
-    glUniform1i(
-        static_cast<GLint>(shader->GetUniformID("activePointLightCount")),
-        clampedPointLightCount
-    );
-
-
-    if (clampedPointLightCount == 0)
-    {
-        return;
-    }
-
-    std::vector<float> pointLightWorldPositionPackedArray;
-    std::vector<float> pointLightDiffuseLightColorPackedArray;
-    std::vector<float> pointLightSpecularLightColorPackedArray;
-
-    std::vector<float> pointLightIntensityMultiplierPackedArray;
-    std::vector<float> pointLightAttenuationConstantPackedArray;
-    std::vector<float> pointLightAttenuationLinearPackedArray;
-    std::vector<float> pointLightAttenuationQuadraticPackedArray;
-
-    /** Packing Arrays for 3 elements by pre-allocating the memory **/
-    pointLightWorldPositionPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
-    pointLightDiffuseLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
-    pointLightSpecularLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
-
-    pointLightIntensityMultiplierPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-    pointLightAttenuationConstantPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-    pointLightAttenuationLinearPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-    pointLightAttenuationQuadraticPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-
-    /**  Iterate through max lights, not all the point lights you have **/
-    for (int pointLightIndex = 0; pointLightIndex < clampedPointLightCount; pointLightIndex++)
-    {
-        const LightActor* pointLightActor = pointLightActorList[pointLightIndex];
-        if (pointLightActor == nullptr)
+        if (shader == nullptr)
         {
-            // Fill with safe defaults if a null sneaks in.
-            pointLightWorldPositionPackedArray.insert(pointLightWorldPositionPackedArray.end(), {0.0f, 0.0f, 0.0f});
-            pointLightDiffuseLightColorPackedArray.insert(pointLightDiffuseLightColorPackedArray.end(),
-                                                          {0.0f, 0.0f, 0.0f});
-            pointLightSpecularLightColorPackedArray.insert(pointLightSpecularLightColorPackedArray.end(),
-                                                           {0.0f, 0.0f, 0.0f});
-
-            pointLightIntensityMultiplierPackedArray.push_back(0.0f);
-            pointLightAttenuationConstantPackedArray.push_back(1.0f);
-            pointLightAttenuationLinearPackedArray.push_back(0.0f);
-            pointLightAttenuationQuadraticPackedArray.push_back(0.0f);
-            continue;
+            return;
         }
 
-        const Ref transformComponent = pointLightActor->GetComponent<TransformComponent>();
-        const Vec3 pointLightWorldPosition = transformComponent->GetPosition();
+        const int requestedPointLightCount = static_cast<int>(pointLightActorList.size());
+        const int clampedPointLightCount = std::max(0, std::min(requestedPointLightCount, 8));
 
-        const PointLightParameters& pointLightParameters = pointLightActor->GetPointLightParameters();
+        /** If there are no lights, still upload the count so the shader loop does not run. **/
+        glUniform1i(
+            static_cast<GLint>(shader->GetUniformID("activePointLightCount")),
+            clampedPointLightCount
+        );
 
-        pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.x);
-        pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.y);
-        pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.z);
 
-        pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.x);
-        pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.y);
-        pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.z);
+        if (clampedPointLightCount == 0)
+        {
+            return;
+        }
 
-        pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.x);
-        pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.y);
-        pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.z);
+        std::vector<float> pointLightWorldPositionPackedArray;
+        std::vector<float> pointLightDiffuseLightColorPackedArray;
+        std::vector<float> pointLightSpecularLightColorPackedArray;
 
-        pointLightIntensityMultiplierPackedArray.push_back(pointLightParameters.lightIntensityMultiplier);
-        pointLightAttenuationConstantPackedArray.push_back(pointLightParameters.attenuationConstant);
-        pointLightAttenuationLinearPackedArray.push_back(pointLightParameters.attenuationLinear);
-        pointLightAttenuationQuadraticPackedArray.push_back(pointLightParameters.attenuationQuadratic);
+        std::vector<float> pointLightIntensityMultiplierPackedArray;
+        std::vector<float> pointLightAttenuationConstantPackedArray;
+        std::vector<float> pointLightAttenuationLinearPackedArray;
+        std::vector<float> pointLightAttenuationQuadraticPackedArray;
+
+        /** Packing Arrays for 3 elements by pre-allocating the memory **/
+        pointLightWorldPositionPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
+        pointLightDiffuseLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
+        pointLightSpecularLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
+
+        pointLightIntensityMultiplierPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+        pointLightAttenuationConstantPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+        pointLightAttenuationLinearPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+        pointLightAttenuationQuadraticPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+
+        /**  Iterate through max lights, not all the point lights you have **/
+        for (int pointLightIndex = 0; pointLightIndex < clampedPointLightCount; pointLightIndex++)
+        {
+            const auto& pointLightActor = pointLightActorList[pointLightIndex];
+            if (!pointLightActor || pointLightActor.get() == nullptr)
+            {
+                // Fill with safe defaults if a null sneaks in.
+                pointLightWorldPositionPackedArray.insert(pointLightWorldPositionPackedArray.end(), {0.0f, 0.0f, 0.0f});
+                pointLightDiffuseLightColorPackedArray.insert(pointLightDiffuseLightColorPackedArray.end(),
+                                                              {0.0f, 0.0f, 0.0f});
+                pointLightSpecularLightColorPackedArray.insert(pointLightSpecularLightColorPackedArray.end(),
+                                                               {0.0f, 0.0f, 0.0f});
+
+                pointLightIntensityMultiplierPackedArray.push_back(0.0f);
+                pointLightAttenuationConstantPackedArray.push_back(1.0f);
+                pointLightAttenuationLinearPackedArray.push_back(0.0f);
+                pointLightAttenuationQuadraticPackedArray.push_back(0.0f);
+                continue;
+            }
+
+            const Ref transformComponent = pointLightActor->GetComponent<TransformComponent>();
+            const Vec3 pointLightWorldPosition = transformComponent->GetPosition();
+
+            const PointLightParameters& pointLightParameters = pointLightActor->GetPointLightParameters();
+
+            pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.x);
+            pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.y);
+            pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.z);
+
+            pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.x);
+            pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.y);
+            pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.z);
+
+            pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.x);
+            pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.y);
+            pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.z);
+
+            pointLightIntensityMultiplierPackedArray.push_back(pointLightParameters.lightIntensityMultiplier);
+            pointLightAttenuationConstantPackedArray.push_back(pointLightParameters.attenuationConstant);
+            pointLightAttenuationLinearPackedArray.push_back(pointLightParameters.attenuationLinear);
+            pointLightAttenuationQuadraticPackedArray.push_back(pointLightParameters.attenuationQuadratic);
+        }
+
+        glUniform3fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightWorldPositionArray[0]")),
+            clampedPointLightCount,
+            pointLightWorldPositionPackedArray.data()
+        );
+
+        glUniform3fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightDiffuseLightColorArray[0]")),
+            clampedPointLightCount,
+            pointLightDiffuseLightColorPackedArray.data()
+        );
+
+        glUniform3fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightSpecularLightColorArray[0]")),
+            clampedPointLightCount,
+            pointLightSpecularLightColorPackedArray.data()
+        );
+
+        glUniform1fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightIntensityMultiplierArray[0]")),
+            clampedPointLightCount,
+            pointLightIntensityMultiplierPackedArray.data()
+        );
+
+        glUniform1fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightAttenuationConstantArray[0]")),
+            clampedPointLightCount,
+            pointLightAttenuationConstantPackedArray.data()
+        );
+
+        glUniform1fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightAttenuationLinearArray[0]")),
+            clampedPointLightCount,
+            pointLightAttenuationLinearPackedArray.data()
+        );
+
+        glUniform1fv(
+            static_cast<GLint>(shader->GetUniformID("pointLightAttenuationQuadraticArray[0]")),
+            clampedPointLightCount,
+            pointLightAttenuationQuadraticPackedArray.data()
+        );
+        glUniform1f(static_cast<GLint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
     }
-
-    glUniform3fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightWorldPositionArray[0]")),
-        clampedPointLightCount,
-        pointLightWorldPositionPackedArray.data()
-    );
-
-    glUniform3fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightDiffuseLightColorArray[0]")),
-        clampedPointLightCount,
-        pointLightDiffuseLightColorPackedArray.data()
-    );
-
-    glUniform3fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightSpecularLightColorArray[0]")),
-        clampedPointLightCount,
-        pointLightSpecularLightColorPackedArray.data()
-    );
-
-    glUniform1fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightIntensityMultiplierArray[0]")),
-        clampedPointLightCount,
-        pointLightIntensityMultiplierPackedArray.data()
-    );
-
-    glUniform1fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightAttenuationConstantArray[0]")),
-        clampedPointLightCount,
-        pointLightAttenuationConstantPackedArray.data()
-    );
-
-    glUniform1fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightAttenuationLinearArray[0]")),
-        clampedPointLightCount,
-        pointLightAttenuationLinearPackedArray.data()
-    );
-
-    glUniform1fv(
-        static_cast<GLint>(shader->GetUniformID("pointLightAttenuationQuadraticArray[0]")),
-        clampedPointLightCount,
-        pointLightAttenuationQuadraticPackedArray.data()
-    );
-    glUniform1f(static_cast<GLint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
-};
+}
 
 void Scene1::Render() const
 {
@@ -448,13 +451,6 @@ void Scene1::Render() const
 
     /** Rendering Point Lights **/
     UploadPointLightsToShader(shader, point_lights_);
-
-
-    //glUniform4fv(shader->GetUniformID("diffuseMaterialColor"), 1, Vec4(0.2f, 0.7f, 0.1f, 0.0f));
-    //glUniform4fv(shader->GetUniformID("specularMaterialColor"), 1, Vec4(0.01f, 0.3f, 0.01f, 0.0f));
-    //glUniform1f(shader->GetUniformID("specularShininessExponent"), 14.0f);
-    //glUniform1f(shader->GetUniformID("lightIntensityMultiplier"), 1.0f);
-
     /** End Point Lights **/
 
 
@@ -467,7 +463,8 @@ void Scene1::Render() const
     board_->GetComponent<MeshComponent>()->Render();
 
     /** Render all Pieces **/
-    for (const auto piece : chess_piece_actors_)
+    /** Use A reference "&" to avoid copying the pieces **/
+    for (const Ref<Actor>& piece : chess_piece_actors_)
     {
         glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
                            piece->GetModelMatrix());
