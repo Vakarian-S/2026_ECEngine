@@ -157,6 +157,7 @@
     <ClInclude Include="Debug.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="MaterialComponent.h" />
+    <ClInclude Include="MemoryDiagnostics.h" />
     <ClInclude Include="MeshComponent.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="Scene.h" />
@@ -178,6 +179,19 @@
     <None Include="shaders\texturePhongFragOriginal.glsl" />
     <None Include="shaders\texturePhongVert.glsl" />
     <None Include="shaders\texturePhongVertOriginal.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="DOCUMENTATION.md" />
+    <Content Include="docs\DIAGNOSTICS_QUICK_REFERENCE.md" />
+    <Content Include="docs\FILE_LISTING.md" />
+    <Content Include="docs\IMPLEMENTATION_CHECKLIST.md" />
+    <Content Include="docs\MEMORY_DIAGNOSTICS_GUIDE.md" />
+    <Content Include="docs\MEMORY_DIAGNOSTICS_SETUP.md" />
+    <Content Include="docs\MEMORY_DIAGNOSTICS_VISUAL.md" />
+    <Content Include="docs\README_MEMORY_DIAGNOSTICS.md" />
+    <Content Include="docs\REAL_OUTPUT_EXAMPLES.md" />
+    <Content Include="docs\START_HERE.md" />
+    <Content Include="docs\TEST_MEMORY_DIAGNOSTICS.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

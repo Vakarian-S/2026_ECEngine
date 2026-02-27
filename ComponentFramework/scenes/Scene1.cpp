@@ -2,13 +2,64 @@
 
 #include <SDL3/SDL_events.h>
 
-
 #include "../MaterialComponent.h"
 #include "../MeshComponent.h"
 #include "../ShaderComponent.h"
 #include "../TransformComponent.h"
+#include "../MemoryDiagnostics.h"
 
-Scene1::Scene1()
+namespace
+{
+    enum class CheckContext : uint8_t
+    {
+        POST_CREATION,
+        PRE_DESTRUCTION
+    };
+
+    /**
+     * Helper function to check scene actor memory
+     * This is here instead of in MemoryDiagnostics to avoid circular includes
+     */
+    void PreSceneDestructionCheck(
+        const Ref<Actor>& board,
+        const std::vector<Ref<Actor>>& pieces,
+        const std::vector<Ref<LightActor>>& lights,
+        const std::string& sceneName = "Scene",
+        CheckContext context = CheckContext::PRE_DESTRUCTION)
+    {
+        const bool isPostCreation = (context == CheckContext::POST_CREATION);
+        
+        std::cout << "\n========== " << (isPostCreation ? "POST-CREATION" : "PRE-DESTRUCTION") 
+                  << " MEMORY CHECK ==========" << '\n';
+        std::cout << "Scene: " << sceneName << '\n';
+        std::cout << "Context: " << (isPostCreation ? "After OnCreate() - Verifying initial state" 
+                                                     : "Before OnDestroy() cleanup - Checking for leaks") << '\n';
+
+        MemoryDiagnostics::PrintRefCount(board, "Board");
+        std::cout << "  Board should have use_count = 1 (only scene holds it)" << '\n';
+
+        MemoryDiagnostics::PrintRefCounts(pieces, "Chess Pieces");
+        std::cout << "  Pieces should have use_count = 1 each (only in chess_piece_actors_ vector)" << '\n';
+
+        MemoryDiagnostics::PrintRefCounts(lights, "Lights");
+        std::cout << "  Lights should have use_count = 1 each (only in point_lights_ vector)" << '\n';
+
+        if (isPostCreation)
+        {
+            std::cout << "\n  ✓ If all use_counts are 1, scene was created correctly without circular references" << '\n';
+            std::cout << "  ✗ If any use_count > 1, there's already a memory issue after creation" << '\n';
+        }
+        else
+        {
+            std::cout << "\n  ✓ If all use_counts are 1, memory will be properly freed on scene destruction" << '\n';
+            std::cout << "  ✗ If any use_count > 1, there's a circular reference or external holder preventing cleanup" << '\n';
+        }
+        
+        std::cout << "========================================\n" << '\n';
+    }
+}
+
+Scene1::Scene1() : camera_(nullptr)
 {
 }
 
@@ -41,9 +92,8 @@ std::vector<int> Scene1::GetColPositionListByPiece(const Chess_pieces pieceName)
         return {3};
     case Chess_pieces::KING:
         return {4};
-    default:
-        return {};
     }
+    return {-1};
 }
 
 
@@ -67,6 +117,8 @@ bool Scene1::OnCreate()
     camera_ = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera_->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
     camera_->OnCreate();
+    
+    new Actor(nullptr);
 
     /** Create Board **/
     board_ = std::make_shared<Actor>(nullptr);
@@ -109,8 +161,8 @@ bool Scene1::OnCreate()
     light2->OnCreate();
     light2->ListComponents();
 
-    point_lights_.push_back(light1);
-    point_lights_.push_back(light2);
+    point_lights_.emplace_back(std::move(light1));
+    point_lights_.emplace_back(std::move(light2));
 
     /** Setup Mesh Filenames **/
     mesh_filenames_ = {
@@ -170,13 +222,27 @@ bool Scene1::OnCreate()
         index++;
     }
 
+    // Memory diagnostics: Print ref counts after scene creation
+#ifdef _DEBUG
+    PreSceneDestructionCheck(board_, chess_piece_actors_, point_lights_, "Scene1", CheckContext::POST_CREATION);
+#endif
+
     return true;
 }
 
 void Scene1::OnDestroy()
 {
+#ifdef _DEBUG
+    std::cout << "\n[Scene1::OnDestroy] Starting scene destruction..." << '\n';
+    PreSceneDestructionCheck(board_, chess_piece_actors_, point_lights_, "Scene1", CheckContext::PRE_DESTRUCTION);
+#endif
+
     chess_piece_actors_.clear();
     chess_piece_meshes_.clear();
+
+#ifdef _DEBUG
+    std::cout << "[Scene1::OnDestroy] Vectors cleared. Remaining references will be destroyed when board_ goes out of scope." << '\n';
+#endif
 }
 
 void Scene1::HandleEvents(const SDL_Event& sdlEvent)
@@ -196,13 +262,15 @@ void Scene1::HandleEvents(const SDL_Event& sdlEvent)
             break;
         default: break;
         }
+    default:
+        break;
     }
 }
 
 void Scene1::Update(float deltaTime)
 {
     /** Camera movement **/
-    const bool* keyboardState = SDL_GetKeyboardState(NULL);
+    const bool* keyboardState = SDL_GetKeyboardState(nullptr);
     Vec3 velocity(0.0f, 0.0f, 0.0f);
     float CameraSpeed = 20.0f;
     if (keyboardState[SDL_SCANCODE_W]) velocity.z -= CameraSpeed;
@@ -264,7 +332,7 @@ void Scene1::Update(float deltaTime)
         going_up_ = true;
     }
 
-    for (auto pointLightItem : point_lights_)
+    for (const auto& pointLightItem : point_lights_)
     {
         auto lightTransform = pointLightItem->GetComponent<TransformComponent>();
         auto sign = going_up_ ? 1.0f : -1.0f;
@@ -285,7 +353,7 @@ void Scene1::Update(float deltaTime)
 namespace
 {
     void UploadPointLightsToShader(
-        Ref<ShaderComponent> shader,
+        const Ref<ShaderComponent>& shader,
         const std::vector<Ref<LightActor>>& pointLightActorList
     )
     {
@@ -332,7 +400,7 @@ namespace
         for (int pointLightIndex = 0; pointLightIndex < clampedPointLightCount; pointLightIndex++)
         {
             const auto& pointLightActor = pointLightActorList[pointLightIndex];
-            if (!pointLightActor || pointLightActor.get() == nullptr)
+            if (!pointLightActor || pointLightActor == nullptr)
             {
                 // Fill with safe defaults if a null sneaks in.
                 pointLightWorldPositionPackedArray.insert(pointLightWorldPositionPackedArray.end(), {0.0f, 0.0f, 0.0f});
@@ -424,8 +492,6 @@ void Scene1::Render() const
     glEnable(GL_CULL_FACE);
 
     const Ref<ShaderComponent> shader = board_->GetComponent<ShaderComponent>();
-    auto myId = shader->GetProgram();
-
 
     glUseProgram(shader->GetProgram());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
@@ -439,7 +505,7 @@ void Scene1::Render() const
                  camera_->GetComponent<TransformComponent>()->GetPosition());
 
     /** Render Point Light Models **/
-    for (auto pointLightItem : point_lights_)
+    for (const auto& pointLightItem : point_lights_)
     {
         glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
                      pointLightItem->GetPointLightParameters().specularLightColor);

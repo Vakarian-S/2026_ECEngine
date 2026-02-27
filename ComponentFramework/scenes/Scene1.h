@@ -30,6 +30,7 @@ private:
 
     /** Light **/
     std::vector<Ref<LightActor>> point_lights_;
+    
 
     Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
     bool going_up_ = true;
