@@ -64,25 +64,25 @@ Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
 bool Scene1::OnCreate()
 {
     /** Setup Camera **/
-    camera = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
-    camera->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
-    camera->OnCreate();
+    camera_ = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
+    camera_->OnCreate();
 
     /** Create Board **/
-    board = new Actor(nullptr);
-    board->AddComponent<MeshComponent>(nullptr, "meshes/Plane.obj");
-    board->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
-    board->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, -1.5f, 0.0f),
-                                            QMath::angleAxisRotation(
-                                                -90.0f, Vec3(1.0f, 0.0f, 0.0f)),
-                                            Vec3(1.5f, 1.5f, 1.5f));
-    baseBoardOrientationQuaternion = QMath::angleAxisRotation(
+    board_ = std::make_shared<Actor>(nullptr);
+    board_->AddComponent<MeshComponent>(nullptr, "meshes/Plane.obj");
+    board_->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
+    board_->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, -1.5f, 0.0f),
+                                             QMath::angleAxisRotation(
+                                                 -90.0f, Vec3(1.0f, 0.0f, 0.0f)),
+                                             Vec3(1.5f, 1.5f, 1.5f));
+    base_board_orientation_quaternion_ = QMath::angleAxisRotation(
         -90.0f, Vec3(1.0f, 0.0f, 0.0f));
-    board->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
-    board->OnCreate();
-    board->ListComponents();
-    
-    
+    board_->AddComponent<MaterialComponent>(nullptr, "textures/8x8_checkered_board.png");
+    board_->OnCreate();
+    board_->ListComponents();
+
+
     auto light1 = new LightActor(nullptr);
     light1->AddComponent<TransformComponent>(nullptr, Vec3(5.0f, 0.0f, 0.0f),
                                              Quaternion(),
@@ -109,11 +109,11 @@ bool Scene1::OnCreate()
     light2->OnCreate();
     light2->ListComponents();
 
-    pointLights.push_back(light1);
-    pointLights.push_back(light2);
+    point_lights_.push_back(light1);
+    point_lights_.push_back(light2);
 
     /** Setup Mesh Filenames **/
-    meshFilenames = {
+    mesh_filenames_ = {
         {Chess_pieces::BISHOP, "meshes/Bishop.obj"},
         {Chess_pieces::KING, "meshes/King.obj"},
         {Chess_pieces::KNIGHT, "meshes/Knight.obj"},
@@ -128,8 +128,8 @@ bool Scene1::OnCreate()
              Chess_pieces::KNIGHT
          })
     {
-        const auto meshActor = std::make_shared<MeshComponent>(nullptr, meshFilenames[chessPiece].c_str());
-        chessPieceMeshes[chessPiece] = meshActor;
+        const auto meshActor = std::make_shared<MeshComponent>(nullptr, mesh_filenames_[chessPiece].c_str());
+        chess_piece_meshes_[chessPiece] = meshActor;
     }
 
     /** Setup the Pieces on the board Iteration Galore **/
@@ -143,9 +143,9 @@ bool Scene1::OnCreate()
         {
             for (const auto colPosition : GetColPositionListByPiece(chessPiece))
             {
-                auto actor = new Actor(board);
-                Ref<MeshComponent> mesh = chessPieceMeshes[chessPiece];
-                actor->AddComponent<MeshComponent>(chessPieceMeshes[chessPiece]);
+                auto actor = new Actor(board_);
+                Ref<MeshComponent> mesh = chess_piece_meshes_[chessPiece];
+                actor->AddComponent<MeshComponent>(chess_piece_meshes_[chessPiece]);
                 actor->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl",
                                                      "shaders/texturePhongFrag.glsl");
                 auto rotationByColor = index
@@ -164,7 +164,7 @@ bool Scene1::OnCreate()
                 actor->AddComponent<MaterialComponent>(nullptr, color);
                 actor->OnCreate();
                 actor->ListComponents();
-                chessPieceActors.push_back(actor);
+                chess_piece_actors_.push_back(actor);
             }
         }
         index++;
@@ -175,7 +175,8 @@ bool Scene1::OnCreate()
 
 void Scene1::OnDestroy()
 {
-    chessPieceActors.clear();
+    chess_piece_actors_.clear();
+    chess_piece_meshes_.clear();
 }
 
 void Scene1::HandleEvents(const SDL_Event& sdlEvent)
@@ -185,13 +186,13 @@ void Scene1::HandleEvents(const SDL_Event& sdlEvent)
     case SDL_EVENT_KEY_DOWN:
         switch (sdlEvent.key.scancode)
         {
-        case SDL_SCANCODE_A: MoveActorBy(board, Vec3(-0.25f, 0.0f, 0.0f));
+        case SDL_SCANCODE_A: MoveActorBy(board_.get(), Vec3(-0.25f, 0.0f, 0.0f));
             break;
-        case SDL_SCANCODE_D: MoveActorBy(board, Vec3(0.25f, 0.0f, 0.0f));
+        case SDL_SCANCODE_D: MoveActorBy(board_.get(), Vec3(0.25f, 0.0f, 0.0f));
             break;
-        case SDL_SCANCODE_W: MoveActorBy(board, Vec3(0.0f, 0.0f, -0.25f));
+        case SDL_SCANCODE_W: MoveActorBy(board_.get(), Vec3(0.0f, 0.0f, -0.25f));
             break;
-        case SDL_SCANCODE_S: MoveActorBy(board, Vec3(0.0f, 0.0f, 0.25f));
+        case SDL_SCANCODE_S: MoveActorBy(board_.get(), Vec3(0.0f, 0.0f, 0.25f));
             break;
         default: break;
         }
@@ -214,7 +215,7 @@ void Scene1::Update(float deltaTime)
     {
         velocity = VMath::normalize(velocity);
         Vec3 displacement = velocity * CameraSpeed * deltaTime;
-        camera->SetView(camera->GetOrientation(), camera->freeCameraMovement(displacement));
+        camera_->SetView(camera_->GetOrientation(), camera_->freeCameraMovement(displacement));
     }
 
     /** Rotate the Board using slerp because why not **/
@@ -230,7 +231,7 @@ void Scene1::Update(float deltaTime)
 
     Quaternion newRotation = QMath::slerp(leftRotation, rightRotation, t);
 
-    board->GetComponent<TransformComponent>()->SetQuaternion(newRotation);
+    board_->GetComponent<TransformComponent>()->SetQuaternion(newRotation);
 
     static float totalTimeSeconds = 0.0f;
     totalTimeSeconds += deltaTime;
@@ -248,25 +249,25 @@ void Scene1::Update(float deltaTime)
         QMath::slerp(leftOffsetRotationQuaternion, rightOffsetRotationQuaternion, interpolationParameter);
 
     Quaternion finalBoardOrientationQuaternion =
-        animatedOffsetRotationQuaternion * baseBoardOrientationQuaternion;
+        animatedOffsetRotationQuaternion * base_board_orientation_quaternion_;
 
-    board->GetComponent<TransformComponent>()->SetQuaternion(finalBoardOrientationQuaternion);
+    board_->GetComponent<TransformComponent>()->SetQuaternion(finalBoardOrientationQuaternion);
 
     /** Moving Lights up and down just to look at them go **/
 
-    if (pointLights[0]->GetComponent<TransformComponent>()->GetPosition().y > 10.0f)
+    if (point_lights_[0]->GetComponent<TransformComponent>()->GetPosition().y > 10.0f)
     {
-        goingUp = false;
+        going_up_ = false;
     }
-    if (pointLights[0]->GetComponent<TransformComponent>()->GetPosition().y < -1.0f)
+    if (point_lights_[0]->GetComponent<TransformComponent>()->GetPosition().y < -1.0f)
     {
-        goingUp = true;
+        going_up_ = true;
     }
 
-    for (auto pointLightItem : pointLights)
+    for (auto pointLightItem : point_lights_)
     {
         auto lightTransform = pointLightItem->GetComponent<TransformComponent>();
-        auto sign = goingUp ? 1.0f : -1.0f;
+        auto sign = going_up_ ? 1.0f : -1.0f;
         auto newPosition = Vec3(
             lightTransform->GetPosition().x,
             lightTransform->GetPosition().y + sign * deltaTime * 10.0f,
@@ -419,23 +420,23 @@ void Scene1::Render() const
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    const Ref<ShaderComponent> shader = board->GetComponent<ShaderComponent>();
+    const Ref<ShaderComponent> shader = board_->GetComponent<ShaderComponent>();
     auto myId = shader->GetProgram();
 
 
     glUseProgram(shader->GetProgram());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
-                       camera->GetProjectionMatrix());
-    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera->GetViewMatrix());
+                       camera_->GetProjectionMatrix());
+    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera_->GetViewMatrix());
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
                  Vec4(1.0f, 0.0f, 0.5f, 0.0f));
 
 
     glUniform3fv(static_cast<GLint>(shader->GetUniformID("cameraWorldPosition")), 1,
-                 camera->GetComponent<TransformComponent>()->GetPosition());
+                 camera_->GetComponent<TransformComponent>()->GetPosition());
 
     /** Render Point Light Models **/
-    for (auto pointLightItem : pointLights)
+    for (auto pointLightItem : point_lights_)
     {
         glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
                      pointLightItem->GetPointLightParameters().specularLightColor);
@@ -446,7 +447,7 @@ void Scene1::Render() const
     }
 
     /** Rendering Point Lights **/
-    UploadPointLightsToShader(shader, pointLights);
+    UploadPointLightsToShader(shader, point_lights_);
 
 
     //glUniform4fv(shader->GetUniformID("diffuseMaterialColor"), 1, Vec4(0.2f, 0.7f, 0.1f, 0.0f));
@@ -460,13 +461,13 @@ void Scene1::Render() const
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
                  Vec4(0.02f, 0.00f, 0.05f, 0.0f));
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
-                       board->GetComponent<TransformComponent>()->GetTransformMatrix());
+                       board_->GetComponent<TransformComponent>()->GetTransformMatrix());
 
-    glBindTexture(GL_TEXTURE_2D, board->GetComponent<MaterialComponent>()->getTextureID());
-    board->GetComponent<MeshComponent>()->Render();
+    glBindTexture(GL_TEXTURE_2D, board_->GetComponent<MaterialComponent>()->getTextureID());
+    board_->GetComponent<MeshComponent>()->Render();
 
     /** Render all Pieces **/
-    for (const auto piece : chessPieceActors)
+    for (const auto piece : chess_piece_actors_)
     {
         glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
                            piece->GetModelMatrix());

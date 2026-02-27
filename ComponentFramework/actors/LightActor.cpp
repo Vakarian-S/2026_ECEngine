@@ -5,7 +5,7 @@
 #include "../ShaderComponent.h"
 #include "../TransformComponent.h"
 
-LightActor::LightActor(Component* parentComponent)
+LightActor::LightActor(std::shared_ptr<Component> parentComponent)
     : Actor(parentComponent)
 {
 }
@@ -15,9 +15,9 @@ bool LightActor::OnCreate()
     Ref transformComponent = GetComponent<TransformComponent>();
     if (transformComponent == nullptr)
     {
-        TransformComponent* newTransform = new TransformComponent(nullptr, Vec3(0.0f, 0.0f, 0.0f),
-                                                                  Quaternion(),
-                                                                  Vec3(0.5f, 0.5f, 0.5f));
+        auto newTransform = std::make_shared<TransformComponent>(nullptr, Vec3(0.0f, 0.0f, 0.0f),
+                                                                 Quaternion(),
+                                                                 Vec3(0.5f, 0.5f, 0.5f));
 
         AddComponent<TransformComponent>(newTransform);
     }
@@ -32,5 +32,4 @@ void LightActor::Update(const float deltaTime)
 
 void LightActor::ApplyPointLightUniformsToShaderProgram(ShaderComponent* shader) const
 {
-   
 }

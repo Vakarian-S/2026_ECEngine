@@ -7,7 +7,7 @@ private:
 	const char* filename;
 	bool LoadImage(const char* filename);
 public:
-	MaterialComponent(Component* parent_,const char* filename_);
+	MaterialComponent(std::shared_ptr<Component> parent_,const char* filename_);
 	virtual ~MaterialComponent();
 	
 	inline GLuint getTextureID() const { return textureID; }

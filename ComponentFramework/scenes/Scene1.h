@@ -22,24 +22,24 @@ class Scene1 : public Scene
 {
 private:
     /** Camera **/
-    CameraActor* camera;
+    CameraActor* camera_;
 
     /** Board **/
-    Actor* board;
-    Quaternion baseBoardOrientationQuaternion;
+    std::shared_ptr<Actor> board_;
+    Quaternion base_board_orientation_quaternion_;
 
     /** Light **/
-    std::vector<LightActor*> pointLights;
+    std::vector<LightActor*> point_lights_;
 
-    Vec3 lightHeight = Vec3(0.0, 0.0, 0.0);
-    bool goingUp = true;
+    Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
+    bool going_up_ = true;
 
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
-    std::vector<Actor*> chessPieceActors;
+    std::vector<Actor*> chess_piece_actors_;
 
     /** Meshes **/
-    std::unordered_map<Chess_pieces, std::string> meshFilenames;
-    std::unordered_map<Chess_pieces, Ref<MeshComponent>> chessPieceMeshes;
+    std::unordered_map<Chess_pieces, std::string> mesh_filenames_;
+    std::unordered_map<Chess_pieces, Ref<MeshComponent>> chess_piece_meshes_;
 
 public:
     Scene1();

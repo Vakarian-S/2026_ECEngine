@@ -7,7 +7,7 @@ using Ref = std::shared_ptr<T>;
 class Component
 {
 public:
-    Component(Component* parent_) : parent(parent_), isCreated(false)
+    Component(std::shared_ptr<Component> parent_) : parent(parent_), isCreated(false)
     {
     }
 
@@ -18,7 +18,7 @@ public:
     virtual void Render() const = 0;
 
 protected:
-    Component* parent;
+    std::shared_ptr<Component> parent;
     /// Just a flag to indicate if the component or actor that inherits this 
     /// base class has called OnCreate (true) 
     bool isCreated;

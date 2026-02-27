@@ -22,7 +22,7 @@ private:
     
 
 public:
-    MeshComponent(Component* parent_, const char* filename_);
+    MeshComponent(std::shared_ptr<Component> parent_, const char* filename_);
 
     MeshComponent(const MeshComponent&) = delete;
     MeshComponent& operator=(const MeshComponent&) = delete;

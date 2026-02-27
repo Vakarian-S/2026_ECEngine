@@ -39,7 +39,7 @@ bool Scene0g::OnCreate()
     camera = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera->AddComponent<TransformComponent>(nullptr, Vec3(1.5f, -1.0f, -10.0f), Quaternion());
     camera->OnCreate();
-
+    
     actor = new Actor(nullptr);
     actor->AddComponent<MeshComponent>(nullptr, "meshes/Mario.obj");
     actor->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
@@ -48,7 +48,7 @@ bool Scene0g::OnCreate()
     actor->OnCreate();
     actor->ListComponents();
 
-    plane = new Actor(actor);
+    plane = new Actor(nullptr);
     plane->AddComponent<MeshComponent>(nullptr, "meshes/Plane.obj");
     plane->AddComponent<ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
     plane->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, -1.5f, 0.0f),

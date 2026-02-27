@@ -7,7 +7,7 @@
 
 class TransformComponent;
 
-Actor::Actor(Component* parent_): Component(parent_)
+Actor::Actor(std::shared_ptr<Component> parent_): Component(parent_)
 {
 }
 
@@ -78,7 +78,7 @@ Matrix4 Actor::GetModelMatrix()
     }
     if (parent)
     {
-        modelMatrix = dynamic_cast<Actor*>(parent)->GetModelMatrix() * modelMatrix;
+        modelMatrix = dynamic_cast<Actor*>(parent.get())->GetModelMatrix() * modelMatrix;
     }
     return modelMatrix;
 }

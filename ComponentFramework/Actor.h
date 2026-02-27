@@ -18,7 +18,7 @@ protected:
     std::vector<std::shared_ptr<Component>> components;
 
 public:
-    Actor(Component* parent_);
+    Actor(std::shared_ptr<Component> parent_);
     ~Actor();
     virtual bool OnCreate() override;
     virtual void OnDestroy() override;

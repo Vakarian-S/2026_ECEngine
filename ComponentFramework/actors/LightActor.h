@@ -25,7 +25,7 @@ private:
     PointLightParameters point_light_parameters_;
 
 public:
-    explicit LightActor(Component* parentComponent);
+    explicit LightActor(std::shared_ptr<Component> parentComponent);
     bool OnCreate() override;
     void Update(const float deltaTime) override;
 
