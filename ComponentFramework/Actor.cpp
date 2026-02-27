@@ -67,8 +67,7 @@ void Actor::ListComponents() const
 
 Matrix4 Actor::GetModelMatrix()
 {
-    Ref transform = GetComponent<TransformComponent>();
-    if (transform)
+    if (const Ref transform = GetComponent<TransformComponent>())
     {
         modelMatrix = transform->GetTransformMatrix();
     }
@@ -76,7 +75,7 @@ Matrix4 Actor::GetModelMatrix()
     {
         modelMatrix.loadIdentity();
     }
-    if (auto parentPtr = parent.lock())
+    if (const auto parentPtr = parent.lock())
     {
         modelMatrix = dynamic_cast<Actor*>(parentPtr.get())->GetModelMatrix() * modelMatrix;
     }

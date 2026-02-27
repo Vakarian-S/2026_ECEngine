@@ -114,11 +114,10 @@ Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
 bool Scene1::OnCreate()
 {
     /** Setup Camera **/
-    camera_ = new CameraActor(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_ = std::make_unique<CameraActor>(nullptr, 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera_->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 2.0f, 15.0f), Quaternion());
     camera_->OnCreate();
     
-    new Actor(nullptr);
 
     /** Create Board **/
     board_ = std::make_shared<Actor>(nullptr);

@@ -22,7 +22,7 @@ class Scene1 : public Scene
 {
 private:
     /** Camera **/
-    CameraActor* camera_;
+    std::unique_ptr<CameraActor> camera_;
 
     /** Board **/
     Ref<Actor> board_;
@@ -30,7 +30,7 @@ private:
 
     /** Light **/
     std::vector<Ref<LightActor>> point_lights_;
-    
+
 
     Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
     bool going_up_ = true;
