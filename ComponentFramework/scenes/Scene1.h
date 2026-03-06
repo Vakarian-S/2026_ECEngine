@@ -1,12 +1,14 @@
 ﻿#pragma once
 #include <array>
 #include <unordered_map>
+#include <random>
 
 #include "../Actor.h"
 #include "../Scene.h"
 #include "../CameraActor.h"
 #include "../MeshComponent.h"
 #include "../actors/LightActor.h"
+#include "../structs/Firework.h"
 
 enum class Chess_pieces: uint8_t
 {
@@ -21,6 +23,8 @@ enum class Chess_pieces: uint8_t
 class Scene1 : public Scene
 {
 private:
+    
+
     /** Camera **/
     std::unique_ptr<CameraActor> camera_;
 
@@ -30,10 +34,16 @@ private:
 
     /** Light **/
     std::vector<Ref<LightActor>> point_lights_;
-
-
+    std::vector<Ref<Firework>> fireworks_;
+    std::vector<Ref<LightActor>> all_lights_;
+    mutable std::mt19937 fireworks_random_seed_;
+    
     Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
     bool going_up_ = true;
+    size_t static_point_light_count_ = 0;
+
+    
+    
 
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
     std::vector<Ref<Actor>> chess_piece_actors_;
@@ -41,6 +51,21 @@ private:
     /** Meshes **/
     std::unordered_map<Chess_pieces, std::string> mesh_filenames_;
     std::unordered_map<Chess_pieces, Ref<MeshComponent>> chess_piece_meshes_;
+
+    /**
+     * Randomizes and initializes a firework's state on spawn.
+     * Overwrites default values with randomized parameters and updates the light actor.
+     *
+     * @param firework Firework instance to initialize for a new spawn.
+     */
+    void SpawnFirework(Firework& firework) const;
+    /**
+     * Advances all fireworks by the given time step.
+     * Handles ascent/explosion phases, flicker, attenuation, and respawn on expiry.
+     *
+     * @param deltaTime Elapsed time in seconds since the last update.
+     */
+    void UpdateFireworks(float deltaTime) const;
 
 public:
     Scene1();

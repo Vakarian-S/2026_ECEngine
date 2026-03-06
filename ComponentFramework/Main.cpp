@@ -9,9 +9,6 @@
 
   
 int main(int argc, char* args[]) {
-	// Enable memory diagnostics tracking
-	MemoryDiagnostics::EnableDebugMemoryTracking();
-
 	Debug::DebugInit("GameEngineLog.txt");
 	
 	SceneManager* gsm = new SceneManager();
@@ -19,9 +16,5 @@ int main(int argc, char* args[]) {
 		gsm->Run();
 	} 
 	delete gsm;
-	
-	// Final memory leak check
-	std::cout << "\n=== Final Memory Leak Report ===" << std::endl;
-	_CrtDumpMemoryLeaks();
 	exit(0);
 }
