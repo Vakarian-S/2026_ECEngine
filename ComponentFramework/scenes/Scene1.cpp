@@ -50,7 +50,7 @@ namespace
         std::cout << "  Pieces should have use_count = 1 each (only in chess_piece_actors_ vector)" << '\n';
 
         MemoryDiagnostics::PrintRefCounts(lights, "Lights");
-        std::cout << "  Lights should have use_count = 1 each (only in point_lights_ vector)" << '\n';
+        std::cout << "  Lights should have use_count = 2  each (one for all_lights and one for their specific light type)" << '\n';
 
         if (isPostCreation)
         {
@@ -151,8 +151,8 @@ bool Scene1::OnCreate()
     /** Create Static Light **/
     auto ambient_point_light = std::make_shared<LightActor>(nullptr);
     ambient_point_light->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 15.0f, 0.0f),
-                                                  Quaternion(),
-                                                  Vec3(0.5f, 0.5f, 0.5f));
+                                                          Quaternion(),
+                                                          Vec3(0.5f, 0.5f, 0.5f));
     ambient_point_light->AddComponent<MeshComponent>(nullptr, "meshes/Sphere.obj");
     ambient_point_light->AddComponent<
         ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
@@ -248,7 +248,7 @@ bool Scene1::OnCreate()
 
     // Memory diagnostics: Print ref counts after scene creation
 #ifdef _DEBUG
-    ReferenceCountCheck(board_, chess_piece_actors_, point_lights_, "Scene1", CheckContext::POST_CREATION);
+    ReferenceCountCheck(board_, chess_piece_actors_, all_lights_, "Scene1", CheckContext::POST_CREATION);
 #endif
 
     return true;
@@ -258,7 +258,7 @@ void Scene1::OnDestroy()
 {
 #ifdef _DEBUG
     std::cout << "\n[Scene1::OnDestroy] Starting scene destruction..." << '\n';
-    ReferenceCountCheck(board_, chess_piece_actors_, point_lights_, "Scene1", CheckContext::PRE_DESTRUCTION);
+    ReferenceCountCheck(board_, chess_piece_actors_, all_lights_, "Scene1", CheckContext::PRE_DESTRUCTION);
 #endif
 
     chess_piece_actors_.clear();
@@ -368,11 +368,7 @@ void Scene1::SpawnFirework(Firework& firework) const
 
     /** Ascent & explosion timing **/
     std::uniform_real_distribution<float> ascentTime(3.0f, 6.0f);
-    constexpr float explosionDuration = 2.0f; // Fixed explosion/fade duration
-
-    /** Intensity & flicker **/
-    std::uniform_real_distribution<float> flickerSpeed(3.0f, 8.0f);
-    std::uniform_real_distribution<float> flickerAmp(0.40f, 0.85f);
+    constexpr float explosionDuration = 2.0f;
 
     /** Attenuation **/
     std::uniform_real_distribution<float> linearStart(0.010f, 0.040f);
@@ -382,17 +378,16 @@ void Scene1::SpawnFirework(Firework& firework) const
 
     /** Color **/
     std::uniform_real_distribution<float> randomColor(0.0f, 1.0f);
-    
+
     /** Initial age offset to stagger fireworks **/
     std::uniform_real_distribution<float> initialAge(0.0f, 4.0f);
 
     /** Set all start parameters with the random values we generated **/
     firework.age_seconds = initialAge(fireworks_random_seed_);
     firework.ascent_duration = ascentTime(fireworks_random_seed_);
-    std::cout << "Ascent Duration Randomized: " << firework.ascent_duration << '\n';
     firework.explosion_start = firework.ascent_duration;
     firework.has_exploded = false;
-    firework.lifetime_seconds = firework.ascent_duration + explosionDuration; // Total = ascent + explosion
+    firework.lifetime_seconds = firework.ascent_duration + explosionDuration;
     firework.base_intensity = 2.0f;
     firework.explosion_intensity_peak = 10.0f;
     firework.flicker_speed = 10.0f;
@@ -412,11 +407,13 @@ void Scene1::SpawnFirework(Firework& firework) const
 
     /** Color Setup on the Light Actor Itself **/
     const auto randomizedColor =
-        Vec3(randomColor(fireworks_random_seed_), randomColor(fireworks_random_seed_), randomColor(fireworks_random_seed_));
+        Vec3(randomColor(fireworks_random_seed_), randomColor(fireworks_random_seed_),
+             randomColor(fireworks_random_seed_));
     firework.light_actor->SetDiffuseLightColor(randomizedColor);
     firework.light_actor->SetSpecularLightColor(randomizedColor * 1.5f);
     firework.light_actor->SetLightIntensityMultiplier(0.0f);
-    firework.light_actor->SetAttenuationParameters(1.0f, firework.attenuation_linear_start, firework.attenuation_quadratic_start);
+    firework.light_actor->SetAttenuationParameters(1.0f, firework.attenuation_linear_start,
+                                                   firework.attenuation_quadratic_start);
 }
 
 void Scene1::UpdateFireworks(float deltaTime) const
@@ -434,19 +431,20 @@ void Scene1::UpdateFireworks(float deltaTime) const
         {
             continue;
         }
-        
+
+        /** Update the Age and check the percentage along its overall lifetime (0 -> 1) **/
         star->age_seconds += deltaTime;
         const float normalizedAge = std::clamp(star->age_seconds / star->lifetime_seconds, 0.0f, 1.0f);
 
         const Ref transform = star->light_actor->GetComponent<TransformComponent>();
         const Vec3 currentPosition = transform->GetPosition();
-        
+
         /** Check if the Firework has exploded **/
         if (!star->has_exploded && star->age_seconds >= star->explosion_start)
         {
             star->has_exploded = true;
         }
-        
+
         /** Firework goes up only if it hasnt exploded yet **/
         Vec3 nextPosition = currentPosition;
         if (!star->has_exploded)
@@ -460,32 +458,35 @@ void Scene1::UpdateFireworks(float deltaTime) const
 
         if (star->has_exploded)
         {
-            // Post-explosion: fade from peak back to baseline, then to zero
+            /** Post-explosion: fade from peak back to baseline, then to zero **/
+            /** Before Explosion: Time = Negative, After: Time = Positive **/
             const float timeSinceExplosion = star->age_seconds - star->explosion_start;
-            const float explosionFadeDuration = star->lifetime_seconds - star->explosion_start;
-            const float explosionFade = std::max(0.0f, 1.0f - (timeSinceExplosion / explosionFadeDuration));
+            /** Before Explosion: Time = Negative, After: Time = Positive **/
+            const float totalTimeAfterExplosion = star->lifetime_seconds - star->explosion_start;
+            const float explosionFade = std::max(0.0f, 1.0f - (timeSinceExplosion / totalTimeAfterExplosion));
 
-            // Spike at explosion, then decay (reduced from 3.0f to 1.5f for slower flash)
+            /** Spike at explosion, then decay **/
             const float explosionSpike = std::exp(-timeSinceExplosion * 1.5f);
             intensity = star->explosion_intensity_peak * explosionSpike * explosionFade;
         }
         else
         {
-            // Pre-explosion (ascent): gradually increase intensity as it rises with smooth curve
+            /** Pre-explosion (ascent): gradually increase intensity as it rises with smooth curve **/
             const float ascentProgress = star->age_seconds / star->ascent_duration;
-            // Smoothstep: slow at start and end, fast in middle
+            /** Smoothstep: slow at start and end, fast in middle **/
             const float smoothProgress = ascentProgress * ascentProgress * (3.0f - 2.0f * ascentProgress);
             intensity = star->base_intensity * smoothProgress;
-            
-            // Add light flicker during ascent
+
+            /** Add light flicker during ascent **/
             const float flickerWave = 0.5f + 0.5f * std::sin(star->age_seconds * star->flicker_speed);
             const float randomFlicker = flickerNoise(fireworks_random_seed_);
             intensity *= (1.0f + star->flicker_amplitude * 0.15f * (flickerWave + randomFlicker - 0.5f));
         }
 
+        /** Avoid Negative Values **/
         intensity = std::max(0.0f, intensity);
 
-        // Attenuation evolves over lifetime
+        /** Attenuation evolves over lifetime **/
         const float linearAttenuation =
             star->attenuation_linear_start +
             (star->attenuation_linear_end - star->attenuation_linear_start) * normalizedAge;
@@ -496,10 +497,11 @@ void Scene1::UpdateFireworks(float deltaTime) const
         star->light_actor->SetLightIntensityMultiplier(intensity);
         star->light_actor->SetAttenuationParameters(1.0f, linearAttenuation, quadraticAttenuation);
 
-        // Respawn when lifetime expired or intensity dies out
+        /** Respawn when lifetime expired or intensity dies out **/
         const bool lifetimeExpired = (star->age_seconds >= star->lifetime_seconds);
         if (lifetimeExpired)
         {
+            /** Instead of creating another pointer we can reuse this one **/
             SpawnFirework(*star);
         }
     }
