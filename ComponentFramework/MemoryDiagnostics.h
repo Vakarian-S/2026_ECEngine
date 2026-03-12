@@ -4,6 +4,7 @@
 #include <typeinfo>
 #include <vector>
 #include <string>
+#include "structs/Firework.h"
 
 class MemoryDiagnostics
 {
@@ -36,6 +37,26 @@ public:
         for (size_t i = 0; i < ptrs.size(); ++i)
         {
             std::cout << "  [" << i << "] use_count = " << (ptrs[i] ? ptrs[i].use_count() : 0) << std::endl;
+        }
+    }
+
+    /**
+     * Print ref counts for fireworks and their embedded light actors
+     * Extracts light_actor pointers without creating new shared_ptr copies (no ref count increase)
+     */
+    static void PrintRefCountsForFireworks(const std::vector<std::shared_ptr<Firework>>& fireworks, const std::string& containerName = "")
+    {
+        std::cout << "\n[RefCounts] " << containerName << " (" << fireworks.size() << " items):" << std::endl;
+        for (size_t i = 0; i < fireworks.size(); ++i)
+        {
+            if (fireworks[i] && fireworks[i]->light_actor)
+            {
+                std::cout << "  [" << i << "] use_count = " << fireworks[i]->light_actor.use_count() << std::endl;
+            }
+            else
+            {
+                std::cout << "  [" << i << "] light_actor is nullptr" << std::endl;
+            }
         }
     }
 };

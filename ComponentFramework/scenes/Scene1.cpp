@@ -11,63 +11,6 @@
 #include "../TransformComponent.h"
 #include "../MemoryDiagnostics.h"
 
-namespace
-{
-    enum class CheckContext : uint8_t
-    {
-        POST_CREATION,
-        PRE_DESTRUCTION
-    };
-
-    /**
-     * Counts all the shared pointers references we have in the scene, we use this for diagnosing.
-     * @param board 
-     * @param pieces 
-     * @param lights 
-     * @param sceneName 
-     * @param context 
-     */
-    void ReferenceCountCheck(
-        const Ref<Actor>& board,
-        const std::vector<Ref<Actor>>& pieces,
-        const std::vector<Ref<LightActor>>& lights,
-        const std::string& sceneName = "Scene",
-        CheckContext context = CheckContext::PRE_DESTRUCTION)
-    {
-        const bool isPostCreation = (context == CheckContext::POST_CREATION);
-
-        std::cout << "\n========== " << (isPostCreation ? "POST-CREATION" : "PRE-DESTRUCTION")
-            << " MEMORY CHECK ==========" << '\n';
-        std::cout << "Scene: " << sceneName << '\n';
-        std::cout << "Context: " << (isPostCreation
-                                         ? "After OnCreate() - Verifying initial state"
-                                         : "Before OnDestroy() cleanup - Checking for leaks") << '\n';
-
-        MemoryDiagnostics::PrintRefCount(board, "Board");
-        std::cout << "  Board should have use_count = 1 (only scene holds it)" << '\n';
-
-        MemoryDiagnostics::PrintRefCounts(pieces, "Chess Pieces");
-        std::cout << "  Pieces should have use_count = 1 each (only in chess_piece_actors_ vector)" << '\n';
-
-        MemoryDiagnostics::PrintRefCounts(lights, "Lights");
-        std::cout << "  Lights should have use_count = 2  each (one for all_lights and one for their specific light type)" << '\n';
-
-        if (isPostCreation)
-        {
-            std::cout << "\n  ✓ If all use_counts are 1, scene was created correctly without circular references" <<
-                '\n';
-            std::cout << "  ✗ If any use_count > 1, there's already a memory issue after creation" << '\n';
-        }
-        else
-        {
-            std::cout << "\n  ✓ If all use_counts are 1, memory will be properly freed on scene destruction" << '\n';
-            std::cout << "  ✗ If any use_count > 1, there's a circular reference or external holder preventing cleanup"
-                << '\n';
-        }
-
-        std::cout << "========================================\n" << '\n';
-    }
-}
 
 Scene1::Scene1() : camera_(nullptr)
 {
@@ -112,7 +55,7 @@ std::vector<int> Scene1::GetColPositionListByPiece(const Chess_pieces pieceName)
 }
 
 
-Vec3 Scene1::GetRelativeTransformOnBoard(int row, int col)
+Vec3 Scene1::GetRelativeTransformOnBoard(const int row, const int col)
 {
     constexpr float cellSize = 1.25f;
     /** Move to 0,0 **/
@@ -149,23 +92,23 @@ bool Scene1::OnCreate()
     board_->ListComponents();
 
     /** Create Static Light **/
-    auto ambient_point_light = std::make_shared<LightActor>(nullptr);
-    ambient_point_light->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 15.0f, 0.0f),
-                                                          Quaternion(),
-                                                          Vec3(0.5f, 0.5f, 0.5f));
-    ambient_point_light->AddComponent<MeshComponent>(nullptr, "meshes/Sphere.obj");
-    ambient_point_light->AddComponent<
+    auto ambientPointLight = std::make_shared<LightActor>(nullptr);
+    ambientPointLight->AddComponent<TransformComponent>(nullptr, Vec3(0.0f, 15.0f, 0.0f),
+                                                        Quaternion(),
+                                                        Vec3(0.5f, 0.5f, 0.5f));
+    ambientPointLight->AddComponent<MeshComponent>(nullptr, "meshes/Sphere.obj");
+    ambientPointLight->AddComponent<
         ShaderComponent>(nullptr, "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
-    ambient_point_light->AddComponent<MaterialComponent>(nullptr, "textures/white_texture.png");
-    ambient_point_light->SetDiffuseLightColor(Vec3(0.0f, 0.0f, 1.0f));
-    ambient_point_light->SetSpecularLightColor(Vec3(0.0f, 0.0f, 1.0f));
-    ambient_point_light->SetLightIntensityMultiplier(0.5f);
-    ambient_point_light->SetAttenuationParameters(1.0f, 0.01f, 0.001f);
-    ambient_point_light->OnCreate();
-    ambient_point_light->ListComponents();
+    ambientPointLight->AddComponent<MaterialComponent>(nullptr, "textures/white_texture.png");
+    ambientPointLight->SetDiffuseLightColor(Vec3(0.0f, 0.0f, 1.0f));
+    ambientPointLight->SetSpecularLightColor(Vec3(0.0f, 0.0f, 1.0f));
+    ambientPointLight->SetLightIntensityMultiplier(0.5f);
+    ambientPointLight->SetAttenuationParameters(1.0f, 0.01f, 0.001f);
+    ambientPointLight->OnCreate();
+    ambientPointLight->ListComponents();
 
-    all_lights_.emplace_back(ambient_point_light);
-    point_lights_.emplace_back(std::move(ambient_point_light));
+    all_lights_.emplace_back(ambientPointLight);
+    point_lights_.emplace_back(std::move(ambientPointLight));
     static_point_light_count_ = point_lights_.size();
 
     /** Create Dynamic Lights **/
@@ -246,9 +189,8 @@ bool Scene1::OnCreate()
         index++;
     }
 
-    // Memory diagnostics: Print ref counts after scene creation
 #ifdef _DEBUG
-    ReferenceCountCheck(board_, chess_piece_actors_, all_lights_, "Scene1", CheckContext::POST_CREATION);
+    ReferenceCountCheck(board_, chess_piece_actors_, point_lights_, fireworks_, "Scene1", Check_context::POST_CREATION);
 #endif
 
     return true;
@@ -258,7 +200,7 @@ void Scene1::OnDestroy()
 {
 #ifdef _DEBUG
     std::cout << "\n[Scene1::OnDestroy] Starting scene destruction..." << '\n';
-    ReferenceCountCheck(board_, chess_piece_actors_, all_lights_, "Scene1", CheckContext::PRE_DESTRUCTION);
+    ReferenceCountCheck(board_, chess_piece_actors_, point_lights_, fireworks_, "Scene1", Check_context::PRE_DESTRUCTION);
 #endif
 
     chess_piece_actors_.clear();
@@ -498,8 +440,7 @@ void Scene1::UpdateFireworks(float deltaTime) const
         star->light_actor->SetAttenuationParameters(1.0f, linearAttenuation, quadraticAttenuation);
 
         /** Respawn when lifetime expired or intensity dies out **/
-        const bool lifetimeExpired = (star->age_seconds >= star->lifetime_seconds);
-        if (lifetimeExpired)
+        if (star->age_seconds >= star->lifetime_seconds)
         {
             /** Instead of creating another pointer we can reuse this one **/
             SpawnFirework(*star);
@@ -507,139 +448,6 @@ void Scene1::UpdateFireworks(float deltaTime) const
     }
 }
 
-namespace
-{
-    void UploadPointLightsToShader(
-        const Ref<ShaderComponent>& shader,
-        const std::vector<Ref<LightActor>>& pointLightActorList
-    )
-    {
-        if (shader == nullptr)
-        {
-            return;
-        }
-
-        const int requestedPointLightCount = static_cast<int>(pointLightActorList.size());
-        const int clampedPointLightCount = std::max(0, std::min(requestedPointLightCount, 8));
-
-        /** If there are no lights, still upload the count so the shader loop does not run. **/
-        glUniform1i(
-            static_cast<GLint>(shader->GetUniformID("activePointLightCount")),
-            clampedPointLightCount
-        );
-
-
-        if (clampedPointLightCount == 0)
-        {
-            return;
-        }
-
-        std::vector<float> pointLightWorldPositionPackedArray;
-        std::vector<float> pointLightDiffuseLightColorPackedArray;
-        std::vector<float> pointLightSpecularLightColorPackedArray;
-
-        std::vector<float> pointLightIntensityMultiplierPackedArray;
-        std::vector<float> pointLightAttenuationConstantPackedArray;
-        std::vector<float> pointLightAttenuationLinearPackedArray;
-        std::vector<float> pointLightAttenuationQuadraticPackedArray;
-
-        /** Packing Arrays for 3 elements by pre-allocating the memory **/
-        pointLightWorldPositionPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
-        pointLightDiffuseLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
-        pointLightSpecularLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
-
-        pointLightIntensityMultiplierPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-        pointLightAttenuationConstantPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-        pointLightAttenuationLinearPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-        pointLightAttenuationQuadraticPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
-
-        /**  Iterate through max lights, not all the point lights you have **/
-        for (int pointLightIndex = 0; pointLightIndex < clampedPointLightCount; pointLightIndex++)
-        {
-            const auto& pointLightActor = pointLightActorList[pointLightIndex];
-            if (!pointLightActor || pointLightActor == nullptr)
-            {
-                // Fill with safe defaults if a null sneaks in.
-                pointLightWorldPositionPackedArray.insert(pointLightWorldPositionPackedArray.end(), {0.0f, 0.0f, 0.0f});
-                pointLightDiffuseLightColorPackedArray.insert(pointLightDiffuseLightColorPackedArray.end(),
-                                                              {0.0f, 0.0f, 0.0f});
-                pointLightSpecularLightColorPackedArray.insert(pointLightSpecularLightColorPackedArray.end(),
-                                                               {0.0f, 0.0f, 0.0f});
-
-                pointLightIntensityMultiplierPackedArray.push_back(0.0f);
-                pointLightAttenuationConstantPackedArray.push_back(1.0f);
-                pointLightAttenuationLinearPackedArray.push_back(0.0f);
-                pointLightAttenuationQuadraticPackedArray.push_back(0.0f);
-                continue;
-            }
-
-            const Ref transformComponent = pointLightActor->GetComponent<TransformComponent>();
-            const Vec3 pointLightWorldPosition = transformComponent->GetPosition();
-
-            const PointLightParameters& pointLightParameters = pointLightActor->GetPointLightParameters();
-
-            pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.x);
-            pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.y);
-            pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.z);
-
-            pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.x);
-            pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.y);
-            pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.z);
-
-            pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.x);
-            pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.y);
-            pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.z);
-
-            pointLightIntensityMultiplierPackedArray.push_back(pointLightParameters.lightIntensityMultiplier);
-            pointLightAttenuationConstantPackedArray.push_back(pointLightParameters.attenuationConstant);
-            pointLightAttenuationLinearPackedArray.push_back(pointLightParameters.attenuationLinear);
-            pointLightAttenuationQuadraticPackedArray.push_back(pointLightParameters.attenuationQuadratic);
-        }
-
-        glUniform3fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightWorldPositionArray[0]")),
-            clampedPointLightCount,
-            pointLightWorldPositionPackedArray.data()
-        );
-
-        glUniform3fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightDiffuseLightColorArray[0]")),
-            clampedPointLightCount,
-            pointLightDiffuseLightColorPackedArray.data()
-        );
-
-        glUniform3fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightSpecularLightColorArray[0]")),
-            clampedPointLightCount,
-            pointLightSpecularLightColorPackedArray.data()
-        );
-
-        glUniform1fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightIntensityMultiplierArray[0]")),
-            clampedPointLightCount,
-            pointLightIntensityMultiplierPackedArray.data()
-        );
-
-        glUniform1fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightAttenuationConstantArray[0]")),
-            clampedPointLightCount,
-            pointLightAttenuationConstantPackedArray.data()
-        );
-
-        glUniform1fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightAttenuationLinearArray[0]")),
-            clampedPointLightCount,
-            pointLightAttenuationLinearPackedArray.data()
-        );
-
-        glUniform1fv(
-            static_cast<GLint>(shader->GetUniformID("pointLightAttenuationQuadraticArray[0]")),
-            clampedPointLightCount,
-            pointLightAttenuationQuadraticPackedArray.data()
-        );
-        glUniform1f(static_cast<GLint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
-    }
-}
 
 void Scene1::Render() const
 {
@@ -669,12 +477,12 @@ void Scene1::Render() const
     for (const auto& pointLightItem : all_lights_)
     {
         glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
-                     pointLightItem->GetPointLightParameters().specularLightColor * pointLightItem->
+                     pointLightItem.lock()->GetPointLightParameters().specularLightColor * pointLightItem.lock()->
                      GetPointLightParameters().lightIntensityMultiplier);
         glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("modelMatrix")), 1,GL_FALSE,
-                           pointLightItem->GetModelMatrix());
-        glBindTexture(GL_TEXTURE_2D, pointLightItem->GetComponent<MaterialComponent>()->getTextureID());
-        pointLightItem->GetComponent<MeshComponent>()->Render();
+                           pointLightItem.lock()->GetModelMatrix());
+        glBindTexture(GL_TEXTURE_2D, pointLightItem.lock()->GetComponent<MaterialComponent>()->getTextureID());
+        pointLightItem.lock()->GetComponent<MeshComponent>()->Render();
     }
 
     /** Rendering Point Lights **/
@@ -702,4 +510,182 @@ void Scene1::Render() const
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
+}
+
+void Scene1::ReferenceCountCheck(
+    const Ref<Actor>& board,
+    const std::vector<Ref<Actor>>& pieces,
+    const std::vector<Ref<LightActor>>& staticLights,
+    const std::vector<Ref<Firework>> fireworks,
+
+    const std::string& sceneName,
+    Check_context context)
+{
+    const bool isPostCreation = (context == Check_context::POST_CREATION);
+
+    std::cout << "\n========== " << (isPostCreation ? "POST-CREATION" : "PRE-DESTRUCTION")
+        << " MEMORY CHECK ==========" << '\n';
+    std::cout << "Scene: " << sceneName << '\n';
+    std::cout << "Context: " << (isPostCreation
+                                     ? "After OnCreate() - Verifying initial state"
+                                     : "Before OnDestroy() cleanup - Checking for leaks") << '\n';
+
+    MemoryDiagnostics::PrintRefCount(board, "Board");
+    std::cout << "  Board should have use_count = 1 (only scene holds it)" << '\n';
+
+    MemoryDiagnostics::PrintRefCounts(pieces, "Chess Pieces");
+    std::cout << "  Pieces should have use_count = 1 each (only in chess_piece_actors_ vector)" << '\n';
+
+    MemoryDiagnostics::PrintRefCounts(staticLights, "Static Lights");
+    std::cout << "  Lights should have use_count = 1  each (a shared pointer in point_lights, since all_lights is a weak pointer)"
+        << '\n';
+    
+    MemoryDiagnostics::PrintRefCountsForFireworks(fireworks, "Dynamic Firework Lights");
+    std::cout << "  Firework lights should have use_count = 1 each (held in fireworks vector via light_actor member)"
+        << '\n';
+
+    if (isPostCreation)
+    {
+        std::cout << "\n  ✓ If all use_counts are 1, scene was created correctly without circular references" <<
+            '\n';
+        std::cout << "  ✗ If any use_count > 1, there's already a memory issue after creation" << '\n';
+    }
+    else
+    {
+        std::cout << "\n  ✓ If all use_counts are 1, memory will be properly freed on scene destruction" << '\n';
+        std::cout << "  ✗ If any use_count > 1, there's a circular reference or external holder preventing cleanup"
+            << '\n';
+    }
+
+    std::cout << "========================================\n" << '\n';
+}
+
+void Scene1::UploadPointLightsToShader(
+    const Ref<ShaderComponent>& shader,
+    const std::vector<std::weak_ptr<LightActor>>& pointLightActorList)
+{
+    if (shader == nullptr)
+    {
+        return;
+    }
+
+    const int requestedPointLightCount = static_cast<int>(pointLightActorList.size());
+    const int clampedPointLightCount = std::max(0, std::min(requestedPointLightCount, 8));
+
+    /** If there are no lights, still upload the count so the shader loop does not run. **/
+    glUniform1i(
+        static_cast<GLint>(shader->GetUniformID("activePointLightCount")),
+        clampedPointLightCount
+    );
+
+
+    if (clampedPointLightCount == 0)
+    {
+        return;
+    }
+
+    std::vector<float> pointLightWorldPositionPackedArray;
+    std::vector<float> pointLightDiffuseLightColorPackedArray;
+    std::vector<float> pointLightSpecularLightColorPackedArray;
+
+    std::vector<float> pointLightIntensityMultiplierPackedArray;
+    std::vector<float> pointLightAttenuationConstantPackedArray;
+    std::vector<float> pointLightAttenuationLinearPackedArray;
+    std::vector<float> pointLightAttenuationQuadraticPackedArray;
+
+    /** Packing Arrays for 3 elements by pre-allocating the memory **/
+    pointLightWorldPositionPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
+    pointLightDiffuseLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
+    pointLightSpecularLightColorPackedArray.reserve(static_cast<size_t>(clampedPointLightCount) * 3u);
+
+    pointLightIntensityMultiplierPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+    pointLightAttenuationConstantPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+    pointLightAttenuationLinearPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+    pointLightAttenuationQuadraticPackedArray.reserve(static_cast<size_t>(clampedPointLightCount));
+
+    /**  Iterate through max lights, not all the point lights you have **/
+    for (int pointLightIndex = 0; pointLightIndex < clampedPointLightCount; pointLightIndex++)
+    {
+        const auto& pointLightActor = pointLightActorList[pointLightIndex];
+        if (!pointLightActor.lock() || pointLightActor.lock() == nullptr)
+        {
+            // Fill with safe defaults if a null sneaks in.
+            pointLightWorldPositionPackedArray.insert(pointLightWorldPositionPackedArray.end(), {0.0f, 0.0f, 0.0f});
+            pointLightDiffuseLightColorPackedArray.insert(pointLightDiffuseLightColorPackedArray.end(),
+                                                          {0.0f, 0.0f, 0.0f});
+            pointLightSpecularLightColorPackedArray.insert(pointLightSpecularLightColorPackedArray.end(),
+                                                           {0.0f, 0.0f, 0.0f});
+
+            pointLightIntensityMultiplierPackedArray.push_back(0.0f);
+            pointLightAttenuationConstantPackedArray.push_back(1.0f);
+            pointLightAttenuationLinearPackedArray.push_back(0.0f);
+            pointLightAttenuationQuadraticPackedArray.push_back(0.0f);
+            continue;
+        }
+
+        const Ref transformComponent = pointLightActor.lock()->GetComponent<TransformComponent>();
+        const Vec3 pointLightWorldPosition = transformComponent->GetPosition();
+
+        const PointLightParameters& pointLightParameters = pointLightActor.lock()->GetPointLightParameters();
+
+        pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.x);
+        pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.y);
+        pointLightWorldPositionPackedArray.push_back(pointLightWorldPosition.z);
+
+        pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.x);
+        pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.y);
+        pointLightDiffuseLightColorPackedArray.push_back(pointLightParameters.diffuseLightColor.z);
+
+        pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.x);
+        pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.y);
+        pointLightSpecularLightColorPackedArray.push_back(pointLightParameters.specularLightColor.z);
+
+        pointLightIntensityMultiplierPackedArray.push_back(pointLightParameters.lightIntensityMultiplier);
+        pointLightAttenuationConstantPackedArray.push_back(pointLightParameters.attenuationConstant);
+        pointLightAttenuationLinearPackedArray.push_back(pointLightParameters.attenuationLinear);
+        pointLightAttenuationQuadraticPackedArray.push_back(pointLightParameters.attenuationQuadratic);
+    }
+
+    glUniform3fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightWorldPositionArray[0]")),
+        clampedPointLightCount,
+        pointLightWorldPositionPackedArray.data()
+    );
+
+    glUniform3fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightDiffuseLightColorArray[0]")),
+        clampedPointLightCount,
+        pointLightDiffuseLightColorPackedArray.data()
+    );
+
+    glUniform3fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightSpecularLightColorArray[0]")),
+        clampedPointLightCount,
+        pointLightSpecularLightColorPackedArray.data()
+    );
+
+    glUniform1fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightIntensityMultiplierArray[0]")),
+        clampedPointLightCount,
+        pointLightIntensityMultiplierPackedArray.data()
+    );
+
+    glUniform1fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightAttenuationConstantArray[0]")),
+        clampedPointLightCount,
+        pointLightAttenuationConstantPackedArray.data()
+    );
+
+    glUniform1fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightAttenuationLinearArray[0]")),
+        clampedPointLightCount,
+        pointLightAttenuationLinearPackedArray.data()
+    );
+
+    glUniform1fv(
+        static_cast<GLint>(shader->GetUniformID("pointLightAttenuationQuadraticArray[0]")),
+        clampedPointLightCount,
+        pointLightAttenuationQuadraticPackedArray.data()
+    );
+    glUniform1f(static_cast<GLint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
 }

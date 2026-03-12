@@ -20,6 +20,12 @@ enum class Chess_pieces: uint8_t
     KING,
 };
 
+enum class Check_context : uint8_t
+{
+    POST_CREATION,
+    PRE_DESTRUCTION
+};
+
 class Scene1 : public Scene
 {
 private:
@@ -35,7 +41,7 @@ private:
     /** Light **/
     std::vector<Ref<LightActor>> point_lights_;
     std::vector<Ref<Firework>> fireworks_;
-    std::vector<Ref<LightActor>> all_lights_;
+    std::vector<std::weak_ptr<LightActor>> all_lights_;
     mutable std::mt19937 fireworks_random_seed_;
     
     Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
@@ -66,6 +72,29 @@ private:
      * @param deltaTime Elapsed time in seconds since the last update.
      */
     void UpdateFireworks(float deltaTime) const;
+    /**
+     * Counts all the shared pointers references we have in the scene, we use this for diagnosing.
+     * @param board 
+     * @param pieces 
+     * @param lights
+     * @param fireworks 
+     * @param sceneName 
+     * @param context 
+     */
+    static void ReferenceCountCheck(
+        const Ref<Actor>& board,
+        const std::vector<Ref<Actor>>& pieces,
+        const std::vector<Ref<LightActor>>& lights,
+        std::vector<Ref<Firework>> fireworks,
+        const std::string& sceneName = "Scene", Check_context context = Check_context::PRE_DESTRUCTION);
+    /**
+     * Uploads point light data to the shader.
+     * @param shader The shader component to upload data to.
+     * @param pointLightActorList The list of point light actors.
+     */
+    static void UploadPointLightsToShader(
+        const Ref<ShaderComponent>& shader,
+        const std::vector<std::weak_ptr<LightActor>>& pointLightActorList);
 
 public:
     Scene1();
