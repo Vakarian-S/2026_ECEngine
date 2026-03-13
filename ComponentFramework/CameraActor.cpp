@@ -4,7 +4,7 @@
 
 #include "TransformComponent.h"
 
-CameraActor::CameraActor(Ref<Actor> parent, float fieldOfView, float aspectRatio, float near, float far)
+CameraActor::CameraActor(std::weak_ptr<Component> parent, float fieldOfView, float aspectRatio, float near, float far)
     : Actor(parent)
 {
     projectionMatrix = MMath::perspective(fieldOfView, aspectRatio, near, far);
@@ -24,8 +24,6 @@ bool CameraActor::OnCreate()
         position = transformComponent->GetPosition();
         orientation = transformComponent->GetQuaternion();
         viewMatrix.print("View Matrix");
-    } 
+    }
     return true;
 }
-
-

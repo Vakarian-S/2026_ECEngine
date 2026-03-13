@@ -7,7 +7,7 @@ using Ref = std::shared_ptr<T>;
 class Component
 {
 public:
-    Component(Ref<Component> parent_) : parent(parent_), isCreated(false)
+    Component(std::weak_ptr<Component> parent_) : parent(parent_), isCreated(false)
     {
     }
 

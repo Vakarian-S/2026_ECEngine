@@ -22,7 +22,7 @@ private:
     
 
 public:
-    MeshComponent(Ref<Component> parent_, const char* filename_);
+    MeshComponent(std::weak_ptr<Component> parent_, const char* filename_);
 
     MeshComponent(const MeshComponent&) = delete;
     MeshComponent& operator=(const MeshComponent&) = delete;
