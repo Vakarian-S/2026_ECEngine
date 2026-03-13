@@ -7,7 +7,7 @@
 
 class TransformComponent;
 
-Actor::Actor(std::weak_ptr<Component> parent_) : Component(parent_)
+Actor::Actor(WeakRef<Component> parent_) : Component(parent_)
 {
 }
 

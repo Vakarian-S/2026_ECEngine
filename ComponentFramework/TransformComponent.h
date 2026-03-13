@@ -13,8 +13,8 @@ private:
     Quaternion orientation;
 
 public:
-    TransformComponent(std::weak_ptr<Component> parent_);
-    TransformComponent(std::weak_ptr<Component> parent_, Vec3 pos_, Quaternion orientation_, Vec3 scale_ = Vec3(1.0f, 1.0f, 1.0f));
+    TransformComponent(WeakRef<Component> parent_);
+    TransformComponent(WeakRef<Component> parent_, Vec3 pos_, Quaternion orientation_, Vec3 scale_ = Vec3(1.0f, 1.0f, 1.0f));
     ~TransformComponent();
     bool OnCreate() override;
     void OnDestroy() override;

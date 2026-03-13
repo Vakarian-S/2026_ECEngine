@@ -18,7 +18,7 @@ protected:
     std::vector<Ref<Component>> components;
 
 public:
-    Actor(std::weak_ptr<Component> parent_);
+    Actor(WeakRef<Component> parent_);
     ~Actor();
     virtual bool OnCreate() override;
     virtual void OnDestroy() override;

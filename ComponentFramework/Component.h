@@ -4,10 +4,13 @@
 template <typename T>
 using Ref = std::shared_ptr<T>;
 
+template <typename T>
+using WeakRef = std::weak_ptr<T>;
+
 class Component
 {
 public:
-    Component(std::weak_ptr<Component> parent_) : parent(parent_), isCreated(false)
+    Component(WeakRef<Component> parent_) : parent(parent_), isCreated(false)
     {
     }
 
@@ -18,7 +21,7 @@ public:
     virtual void Render() const = 0;
 
 protected:
-    std::weak_ptr<Component> parent;
+    WeakRef<Component> parent;
     /// Just a flag to indicate if the component or actor that inherits this 
     /// base class has called OnCreate (true) 
     bool isCreated;

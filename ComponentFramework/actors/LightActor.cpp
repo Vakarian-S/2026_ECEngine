@@ -5,7 +5,7 @@
 #include "../ShaderComponent.h"
 #include "../TransformComponent.h"
 
-LightActor::LightActor(std::weak_ptr<Component> parentComponent) : Actor(parentComponent)
+LightActor::LightActor(WeakRef<Component> parentComponent) : Actor(parentComponent)
 {
 }
 
@@ -14,7 +14,7 @@ bool LightActor::OnCreate()
     Ref transformComponent = GetComponent<TransformComponent>();
     if (transformComponent == nullptr)
     {
-        auto newTransform = std::make_shared<TransformComponent>(std::weak_ptr<Component>(), Vec3(0.0f, 0.0f, 0.0f),
+        auto newTransform = std::make_shared<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, 0.0f, 0.0f),
                                                                  Quaternion(),
                                                                  Vec3(0.5f, 0.5f, 0.5f));
 

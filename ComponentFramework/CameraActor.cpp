@@ -4,7 +4,7 @@
 
 #include "TransformComponent.h"
 
-CameraActor::CameraActor(std::weak_ptr<Component> parent, float fieldOfView, float aspectRatio, float near, float far)
+CameraActor::CameraActor(WeakRef<Component> parent, float fieldOfView, float aspectRatio, float near, float far)
     : Actor(parent)
 {
     projectionMatrix = MMath::perspective(fieldOfView, aspectRatio, near, far);

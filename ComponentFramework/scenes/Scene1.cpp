@@ -72,35 +72,35 @@ Vec3 Scene1::GetRelativeTransformOnBoard(const int row, const int col)
 bool Scene1::OnCreate()
 {
     /** Setup Camera **/
-    camera_ = std::make_unique<CameraActor>(std::weak_ptr<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
-    camera_->AddComponent<TransformComponent>(std::weak_ptr<Component>(), Vec3(0.0f, 2.0f, 25.0f), Quaternion());
+    camera_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_->AddComponent<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, 2.0f, 25.0f), Quaternion());
     camera_->OnCreate();
 
 
     /** Create Board **/
-    board_ = std::make_shared<Actor>(std::weak_ptr<Component>());
-    board_->AddComponent<MeshComponent>(std::weak_ptr<Component>(), "meshes/Plane.obj");
-    board_->AddComponent<ShaderComponent>(std::weak_ptr<Component>(), "shaders/texturePhongVert.glsl",
+    board_ = std::make_shared<Actor>(WeakRef<Component>());
+    board_->AddComponent<MeshComponent>(WeakRef<Component>(), "meshes/Plane.obj");
+    board_->AddComponent<ShaderComponent>(WeakRef<Component>(), "shaders/texturePhongVert.glsl",
                                           "shaders/texturePhongFrag.glsl");
-    board_->AddComponent<TransformComponent>(std::weak_ptr<Component>(), Vec3(0.0f, -1.5f, 0.0f),
+    board_->AddComponent<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, -1.5f, 0.0f),
                                              QMath::angleAxisRotation(
                                                  -90.0f, Vec3(1.0f, 0.0f, 0.0f)),
                                              Vec3(1.5f, 1.5f, 1.5f));
     base_board_orientation_quaternion_ = QMath::angleAxisRotation(
         -90.0f, Vec3(1.0f, 0.0f, 0.0f));
-    board_->AddComponent<MaterialComponent>(std::weak_ptr<Component>(), "textures/8x8_checkered_board.png");
+    board_->AddComponent<MaterialComponent>(WeakRef<Component>(), "textures/8x8_checkered_board.png");
     board_->OnCreate();
     board_->ListComponents();
 
     /** Create Static Light **/
-    auto ambientPointLight = std::make_shared<LightActor>(std::weak_ptr<Component>());
-    ambientPointLight->AddComponent<TransformComponent>(std::weak_ptr<Component>(), Vec3(0.0f, 15.0f, 0.0f),
+    auto ambientPointLight = std::make_shared<LightActor>(WeakRef<Component>());
+    ambientPointLight->AddComponent<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, 15.0f, 0.0f),
                                                         Quaternion(),
                                                         Vec3(0.5f, 0.5f, 0.5f));
-    ambientPointLight->AddComponent<MeshComponent>(std::weak_ptr<Component>(), "meshes/Sphere.obj");
+    ambientPointLight->AddComponent<MeshComponent>(WeakRef<Component>(), "meshes/Sphere.obj");
     ambientPointLight->AddComponent<
-        ShaderComponent>(std::weak_ptr<Component>(), "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
-    ambientPointLight->AddComponent<MaterialComponent>(std::weak_ptr<Component>(), "textures/white_texture.png");
+        ShaderComponent>(WeakRef<Component>(), "shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
+    ambientPointLight->AddComponent<MaterialComponent>(WeakRef<Component>(), "textures/white_texture.png");
     ambientPointLight->SetDiffuseLightColor(Vec3(0.0f, 0.0f, 1.0f));
     ambientPointLight->SetSpecularLightColor(Vec3(0.0f, 0.0f, 1.0f));
     ambientPointLight->SetLightIntensityMultiplier(0.5f);
@@ -118,14 +118,14 @@ bool Scene1::OnCreate()
     for (size_t i = 0; i < shootingStarCount; ++i)
     {
         auto star = std::make_shared<Firework>();
-        star->light_actor = std::make_unique<LightActor>(std::weak_ptr<Component>());
-        star->light_actor->AddComponent<TransformComponent>(std::weak_ptr<Component>(), Vec3(0.0f, 4.0f, 0.0f),
+        star->light_actor = std::make_unique<LightActor>(WeakRef<Component>());
+        star->light_actor->AddComponent<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, 4.0f, 0.0f),
                                                             Quaternion(),
                                                             Vec3(0.05f, 0.05f, 0.05f));
-        star->light_actor->AddComponent<MeshComponent>(std::weak_ptr<Component>(), "meshes/Sphere.obj");
-        star->light_actor->AddComponent<ShaderComponent>(std::weak_ptr<Component>(), "shaders/texturePhongVert.glsl",
+        star->light_actor->AddComponent<MeshComponent>(WeakRef<Component>(), "meshes/Sphere.obj");
+        star->light_actor->AddComponent<ShaderComponent>(WeakRef<Component>(), "shaders/texturePhongVert.glsl",
                                                          "shaders/texturePhongFrag.glsl");
-        star->light_actor->AddComponent<MaterialComponent>(std::weak_ptr<Component>(), "textures/white_texture.png");
+        star->light_actor->AddComponent<MaterialComponent>(WeakRef<Component>(), "textures/white_texture.png");
         star->light_actor->OnCreate();
         SpawnFirework(*star);
         all_lights_.emplace_back(star->light_actor);
@@ -149,7 +149,7 @@ bool Scene1::OnCreate()
              Chess_pieces::KNIGHT
          })
     {
-        const auto meshActor = std::make_shared<MeshComponent>(std::weak_ptr<Component>(),
+        const auto meshActor = std::make_shared<MeshComponent>(WeakRef<Component>(),
                                                                mesh_filenames_[chessPiece].c_str());
         chess_piece_meshes_[chessPiece] = meshActor;
     }
@@ -168,7 +168,7 @@ bool Scene1::OnCreate()
                 auto actor = std::make_shared<Actor>(board_);
                 Ref<MeshComponent> mesh = chess_piece_meshes_[chessPiece];
                 actor->AddComponent<MeshComponent>(chess_piece_meshes_[chessPiece]);
-                actor->AddComponent<ShaderComponent>(std::weak_ptr<Component>(), "shaders/texturePhongVert.glsl",
+                actor->AddComponent<ShaderComponent>(WeakRef<Component>(), "shaders/texturePhongVert.glsl",
                                                      "shaders/texturePhongFrag.glsl");
                 auto rotationByColor = index
                                            ? QMath::angleAxisRotation(
@@ -177,13 +177,13 @@ bool Scene1::OnCreate()
                                                90.0f, Vec3(1.0f, 0.0f, 0.0f)) * QMath::angleAxisRotation(
                                                180.0f, Vec3(0.0f, 1.0f, 0.0f));
                 actor->AddComponent<TransformComponent>(
-                    std::weak_ptr<Component>(), Vec3(
+                    WeakRef<Component>(), Vec3(
                         GetRelativeTransformOnBoard(chessPiece == Chess_pieces::PAWN ? index * 5 + 1 : index * 7,
                                                     colPosition)),
                     rotationByColor
                     ,
                     Vec3(0.15f, 0.15f, 0.15f));
-                actor->AddComponent<MaterialComponent>(std::weak_ptr<Component>(), color);
+                actor->AddComponent<MaterialComponent>(WeakRef<Component>(), color);
                 actor->OnCreate();
                 actor->ListComponents();
                 chess_piece_actors_.push_back(actor);

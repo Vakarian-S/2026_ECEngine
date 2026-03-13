@@ -7,7 +7,7 @@ private:
 	const char* filename;
 	bool LoadImage(const char* filename);
 public:
-	MaterialComponent(std::weak_ptr<Component> parent_,const char* filename_);
+	MaterialComponent(WeakRef<Component> parent_,const char* filename_);
 	virtual ~MaterialComponent();
 	
 	inline GLuint getTextureID() const { return textureID; }

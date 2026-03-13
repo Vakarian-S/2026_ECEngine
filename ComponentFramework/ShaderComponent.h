@@ -29,7 +29,7 @@ private:
     void SetUniformLocations();
 
 public:
-    ShaderComponent(std::weak_ptr<Component> parent_, const char* vertexShaderFilename_, const char* fragmentShaderFilename_,
+    ShaderComponent(WeakRef<Component> parent_, const char* vertexShaderFilename_, const char* fragmentShaderFilename_,
                     const char* tesselationControllerFilename = nullptr,
                     const char* tesselationEvaluatorFilename = nullptr,
                     const char* geometryShaderFilename = nullptr);

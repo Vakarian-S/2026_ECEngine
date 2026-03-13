@@ -4,7 +4,7 @@
 
 #include "Debug.h"
 
-ShaderComponent::ShaderComponent(std::weak_ptr<Component> parent_, const char* vertexShaderFilename_,
+ShaderComponent::ShaderComponent(WeakRef<Component> parent_, const char* vertexShaderFilename_,
                                  const char* fragmentShaderFilename_,
                                  const char* tesselationControllerFilename, const char* tesselationEvaluatorFilename,
                                  const char* geometryShaderFilename) :
