@@ -7,10 +7,7 @@
 
 class Actor : public Component
 {
-    Actor(const Actor&) = delete;
-    Actor(Actor&&) = delete;
-    Actor& operator=(const Actor&) = delete;
-    Actor& operator=(Actor&&) = delete;
+    
 
     MATH::Matrix4 modelMatrix;
 
@@ -18,8 +15,14 @@ protected:
     std::vector<Ref<Component>> components;
 
 public:
-    Actor(WeakRef<Component> parent_);
+    explicit Actor(WeakRef<Component> parent_);
     ~Actor();
+
+    Actor(const Actor&) = delete;
+    Actor(Actor&&) = delete;
+    Actor& operator=(const Actor&) = delete;
+    Actor& operator=(Actor&&) = delete;
+    
     virtual bool OnCreate() override;
     virtual void OnDestroy() override;
     virtual void Update(const float deltaTime) override;

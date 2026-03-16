@@ -10,6 +10,7 @@
 #include "../ShaderComponent.h"
 #include "../TransformComponent.h"
 #include "../MemoryDiagnostics.h"
+#include "../systems/CollisionSystem.h"
 
 
 Scene1::Scene1() : camera_(nullptr)
@@ -91,6 +92,7 @@ bool Scene1::OnCreate()
     board_->AddComponent<MaterialComponent>(WeakRef<Component>(), "textures/8x8_checkered_board.png");
     board_->OnCreate();
     board_->ListComponents();
+    
 
     /** Create Static Light **/
     auto ambientPointLight = std::make_shared<LightActor>(WeakRef<Component>());
