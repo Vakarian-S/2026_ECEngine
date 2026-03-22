@@ -1,5 +1,5 @@
 ﻿#include "PhysicsComponent.h"
 
-PhysicsComponent::PhysicsComponent(WeakRef<Component> parent_) : Component(parent_)
+PhysicsComponent::PhysicsComponent(WeakRef<Component> parent_) : TransformComponent(parent_)
 {
 }

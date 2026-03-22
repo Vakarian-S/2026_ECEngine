@@ -7,7 +7,7 @@ using namespace MATH;
 
 class TransformComponent : public Component
 {
-private:
+protected:
     Vec3 position;
     Vec3 scale;
     Quaternion orientation;
