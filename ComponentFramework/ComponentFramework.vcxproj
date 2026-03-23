@@ -220,6 +220,7 @@
         <Content Include="docs\REAL_OUTPUT_EXAMPLES.md"/>
         <Content Include="docs\START_HERE.md"/>
         <Content Include="docs\TEST_MEMORY_DIAGNOSTICS.md"/>
+        <Content Include="plan-collisionLocalOffset.prompt.md" />
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">

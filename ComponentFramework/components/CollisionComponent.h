@@ -29,6 +29,15 @@ protected:
     float radius_;
     MATHEX::Plane plane_;
 
+    /**
+     * Local-space offset applied to the wireframe geometry at build time.
+     * Use this to align the collision shape when the mesh origin is at the
+     * base/feet rather than the body centre.
+     * For AABB this is additive on top of aabb_.center.
+     * Must be set before OnCreate() to take effect.
+     */
+    MATH::Vec3 local_offset_ = MATH::Vec3(0.0f, 0.0f, 0.0f);
+
     /** Per-instance GPU wireframe geometry **/
     GLuint vao_ = 0;
     GLuint vbo_ = 0;
@@ -61,4 +70,7 @@ public:
     [[nodiscard]] Collider_type GetType() const { return type_; }
     [[nodiscard]] float GetRadius() const { return radius_; }
     [[nodiscard]] const AABB& GetAABB() const { return aabb_; }
+
+    void SetLocalOffset(const MATH::Vec3& offset) { local_offset_ = offset; }
+    [[nodiscard]] MATH::Vec3 GetLocalOffset() const { return local_offset_; }
 };

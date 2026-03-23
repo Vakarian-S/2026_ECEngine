@@ -9,7 +9,6 @@ void CollisionComponent::BuildSphereWireframe(int segments)
 {
     std::vector<float> verts;
 
-    // 3 great circles: XY, XZ, YZ planes
     const float pi = 3.14159265358979323846f;
     for (int plane = 0; plane < 3; ++plane)
     {
@@ -23,9 +22,30 @@ void CollisionComponent::BuildSphereWireframe(int segments)
             float x1 = radius_ * std::cos(a1);
             float y1 = radius_ * std::sin(a1);
 
-            if (plane == 0) { verts.insert(verts.end(), {x0, y0, 0, x1, y1, 0}); } // XY
-            if (plane == 1) { verts.insert(verts.end(), {x0, 0, y0, x1, 0, y1}); } // XZ
-            if (plane == 2) { verts.insert(verts.end(), {0, x0, y0, 0, x1, y1}); } // YZ
+            // XY plane
+            if (plane == 0)
+            {
+                verts.insert(verts.end(), {
+                    local_offset_.x + x0, local_offset_.y + y0, local_offset_.z,
+                    local_offset_.x + x1, local_offset_.y + y1, local_offset_.z
+                });
+            }
+            // XZ plane
+            if (plane == 1)
+            {
+                verts.insert(verts.end(), {
+                    local_offset_.x + x0, local_offset_.y,        local_offset_.z + y0,
+                    local_offset_.x + x1, local_offset_.y,        local_offset_.z + y1
+                });
+            }
+            // YZ plane
+            if (plane == 2)
+            {
+                verts.insert(verts.end(), {
+                    local_offset_.x,       local_offset_.y + x0, local_offset_.z + y0,
+                    local_offset_.x,       local_offset_.y + x1, local_offset_.z + y1
+                });
+            }
         }
     }
 
@@ -46,10 +66,10 @@ void CollisionComponent::BuildAABBWireframe()
     const MATH::Vec3& c = aabb_.center;
     const MATH::Vec3& h = aabb_.halfExtents;
 
-    // 8 corners
-    float x0 = c.x - h.x, x1 = c.x + h.x;
-    float y0 = c.y - h.y, y1 = c.y + h.y;
-    float z0 = c.z - h.z, z1 = c.z + h.z;
+    // 8 corners — offset applied so the box sits above the mesh origin
+    float x0 = local_offset_.x + c.x - h.x,  x1 = local_offset_.x + c.x + h.x;
+    float y0 = local_offset_.y + c.y - h.y,  y1 = local_offset_.y + c.y + h.y;
+    float z0 = local_offset_.z + c.z - h.z,  z1 = local_offset_.z + c.z + h.z;
 
     // 12 edges, 2 verts each = 24 verts
     std::vector<float> verts = {

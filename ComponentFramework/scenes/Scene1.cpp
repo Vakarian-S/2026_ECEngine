@@ -729,14 +729,16 @@ void Scene1::GenerateSphereCollisions()
 
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {
-        /** Hardcoded Values for dimension**/
         constexpr float kMeshRadius = 7.0f;
         constexpr float kScale = 0.50f;
         constexpr float worldRadius = kMeshRadius * kScale;
 
         piece->AddComponent<CollisionComponent>(WeakRef<Component>(), worldRadius);
         if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
+        {
+            collisionComponent->SetLocalOffset(MATH::Vec3(0.0f, worldRadius, 0.0f));
             collisionComponent->OnCreate();
+        }
     }
 
     collision_mode_ = Collision_mode::SPHERE;
@@ -750,9 +752,9 @@ void Scene1::GenerateAABBCollisions()
     {
         /** Hardcoded values for dimensions **/
         constexpr float kScale = 0.75f;
-        constexpr float kHalfW = 3.5f * kScale; // ~half-width
-        constexpr float kHalfH = 7.0f * kScale; // ~half-height
-        constexpr float kHalfD = 3.5f * kScale; // ~half-depth
+        constexpr float kHalfW = 3.5f * kScale;
+        constexpr float kHalfH = 7.0f * kScale;
+        constexpr float kHalfD = 3.5f * kScale;
 
         AABB box;
         box.center = MATH::Vec3(0.0f, 0.0f, 0.0f);
@@ -760,7 +762,10 @@ void Scene1::GenerateAABBCollisions()
 
         piece->AddComponent<CollisionComponent>(WeakRef<Component>(), box);
         if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
+        {
+            collisionComponent->SetLocalOffset(MATH::Vec3(0.0f, kHalfH, 0.0f));
             collisionComponent->OnCreate();
+        }
     }
 
     collision_mode_ = Collision_mode::AABB;
