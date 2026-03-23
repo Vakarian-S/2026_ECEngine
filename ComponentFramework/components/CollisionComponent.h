@@ -6,6 +6,7 @@
 #include <Matrix.h>
 
 #include "../Component.h"
+#include "../ShaderComponent.h"
 
 enum class Collider_type : uint8_t
 {
@@ -28,25 +29,19 @@ protected:
     float radius_;
     MATHEX::Plane plane_;
 
-    /** GPU wireframe geometry **/
+    /** Per-instance GPU wireframe geometry **/
     GLuint vao_ = 0;
     GLuint vbo_ = 0;
     GLsizei line_vertex_count_ = 0;
 
-    /** Shared wireframe shader (owned by first instance, destroyed on last) **/
-    static GLuint s_wire_shader_;
+    /**
+     * Shared wireframe shader — A single shader will be used for all collision components
+     */
+    static Ref<ShaderComponent> s_shader_;
     static int s_instance_count_;
 
-    /** Uniform locations inside the wireframe shader **/
-    static GLint s_u_projection_;
-    static GLint s_u_view_;
-    static GLint s_u_model_;
-    static GLint s_u_color_;
-
-    void BuildSphereWireframe(int rings = 3, int segments = 32);
+    void BuildSphereWireframe(int segments = 32);
     void BuildAABBWireframe();
-    static bool InitWireShader();
-    static void DestroyWireShader();
 
 public:
     CollisionComponent(WeakRef<Component> parent, float radius);
@@ -57,17 +52,8 @@ public:
     bool OnCreate() override;
     void OnDestroy() override;
 
-    void Update(const float deltaTime_) override
-    {
-    }
-
-    /**
-     * Draws the wireframe using the provided camera matrices.
-     * The model matrix should place the wireframe at the actor's world position.
-     */
-    void Render() const override
-    {
-    }
+    void Update(const float deltaTime_) override {}
+    void Render() const override {}
 
     void RenderWireframe(const MATH::Matrix4& projMatrix,
                          const MATH::Matrix4& viewMatrix,

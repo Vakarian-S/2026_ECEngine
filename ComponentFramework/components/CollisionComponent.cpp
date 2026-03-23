@@ -1,95 +1,12 @@
 ﻿#include "CollisionComponent.h"
 #include <cmath>
 #include <vector>
-#include <iostream>
 
-/** Static member definitions **/
-GLuint CollisionComponent::s_wire_shader_ = 0;
+/** Static service definitions **/
+Ref<ShaderComponent> CollisionComponent::s_shader_ = nullptr;
 int CollisionComponent::s_instance_count_ = 0;
-GLint CollisionComponent::s_u_projection_ = -1;
-GLint CollisionComponent::s_u_view_ = -1;
-GLint CollisionComponent::s_u_model_ = -1;
-GLint CollisionComponent::s_u_color_ = -1;
 
-
-/** Inline GLSL sources for the wireframe shader **/
-static const char* k_wireVert = R"GLSL(
-#version 450
-layout(location = 0) in vec3 inVertex;
-layout(location = 0) uniform mat4 projectionMatrix;
-layout(location = 1) uniform mat4 viewMatrix;
-layout(location = 2) uniform mat4 modelMatrix;
-void main() {
-    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(inVertex, 1.0);
-}
-)GLSL";
-
-static const char* k_wireFrag = R"GLSL(
-#version 450
-layout(location = 3) uniform vec4 wireColor;
-layout(location = 0) out vec4 fragColor;
-void main() { fragColor = wireColor; }
-)GLSL";
-
-static GLuint CompileShader(GLenum type, const char* src)
-{
-    GLuint id = glCreateShader(type);
-    glShaderSource(id, 1, &src, nullptr);
-    glCompileShader(id);
-    GLint ok = 0;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &ok);
-    if (!ok)
-    {
-        char log[512];
-        glGetShaderInfoLog(id, 512, nullptr, log);
-        std::cerr << "[CollisionComponent] Shader compile error: " << log << '\n';
-    }
-    return id;
-}
-
-bool CollisionComponent::InitWireShader()
-{
-    if (s_wire_shader_ != 0) return true; // already compiled
-
-    GLuint vert = CompileShader(GL_VERTEX_SHADER, k_wireVert);
-    GLuint frag = CompileShader(GL_FRAGMENT_SHADER, k_wireFrag);
-
-    s_wire_shader_ = glCreateProgram();
-    glAttachShader(s_wire_shader_, vert);
-    glAttachShader(s_wire_shader_, frag);
-    glLinkProgram(s_wire_shader_);
-
-    GLint ok = 0;
-    glGetProgramiv(s_wire_shader_, GL_LINK_STATUS, &ok);
-    if (!ok)
-    {
-        char log[512];
-        glGetProgramInfoLog(s_wire_shader_, 512, nullptr, log);
-        std::cerr << "[CollisionComponent] Shader link error: " << log << '\n';
-    }
-
-    glDeleteShader(vert);
-    glDeleteShader(frag);
-
-    s_u_projection_ = glGetUniformLocation(s_wire_shader_, "projectionMatrix");
-    s_u_view_ = glGetUniformLocation(s_wire_shader_, "viewMatrix");
-    s_u_model_ = glGetUniformLocation(s_wire_shader_, "modelMatrix");
-    s_u_color_ = glGetUniformLocation(s_wire_shader_, "wireColor");
-
-    return true;
-}
-
-void CollisionComponent::DestroyWireShader()
-{
-    if (s_wire_shader_ != 0)
-    {
-        glDeleteProgram(s_wire_shader_);
-        s_wire_shader_ = 0;
-    }
-}
-
-
-void CollisionComponent::BuildSphereWireframe(int rings, int segments)
+void CollisionComponent::BuildSphereWireframe(int segments)
 {
     std::vector<float> verts;
 
@@ -186,18 +103,36 @@ CollisionComponent::CollisionComponent(WeakRef<Component> parent, MATHEX::Plane 
 
 CollisionComponent::~CollisionComponent()
 {
-    OnDestroy();
+    // Inline the GPU cleanup directly — avoids a virtual call in the destructor
+    if (vao_) { glDeleteVertexArrays(1, &vao_); vao_ = 0; }
+    if (vbo_) { glDeleteBuffers(1, &vbo_);      vbo_ = 0; }
+    line_vertex_count_ = 0;
+
     --s_instance_count_;
     if (s_instance_count_ <= 0)
     {
         s_instance_count_ = 0;
-        DestroyWireShader();
+        /** Release the shared ShaderComponent — its destructor calls OnDestroy()
+         *  which detaches and deletes the GL program, exactly like every other
+         *  ShaderComponent in the scene already does. **/
+        s_shader_.reset();
     }
 }
 
 bool CollisionComponent::OnCreate()
 {
-    InitWireShader();
+    /** Lazily create the shared shader the first time any CollisionComponent
+     *  comes alive.  Uses ShaderComponent so we get file-based loading, the
+     *  engine's error-reporting pipeline, and uniform caching for free. **/
+    if (!s_shader_)
+    {
+        s_shader_ = std::make_shared<ShaderComponent>(
+            WeakRef<Component>(),
+            "shaders/wireframeVert.glsl",
+            "shaders/wireframeFrag.glsl"
+        );
+        s_shader_->OnCreate();
+    }
 
     if (type_ == Collider_type::SPHERE)
         BuildSphereWireframe();
@@ -227,19 +162,26 @@ void CollisionComponent::RenderWireframe(const MATH::Matrix4& proj,
                                          const MATH::Matrix4& view,
                                          const MATH::Matrix4& model) const
 {
-    if (vao_ == 0 || s_wire_shader_ == 0 || line_vertex_count_ == 0) return;
+    if (vao_ == 0 || !s_shader_ || line_vertex_count_ == 0) return;
 
-    glUseProgram(s_wire_shader_);
+    glUseProgram(s_shader_->GetProgram());
 
-    glUniformMatrix4fv(s_u_projection_, 1, GL_FALSE, static_cast<const float*>(proj));
-    glUniformMatrix4fv(s_u_view_, 1, GL_FALSE, static_cast<const float*>(view));
-    glUniformMatrix4fv(s_u_model_, 1, GL_FALSE, static_cast<const float*>(model));
+    glUniformMatrix4fv(
+        static_cast<GLint>(s_shader_->GetUniformID("projectionMatrix")),
+        1, GL_FALSE, static_cast<const float*>(proj));
+    glUniformMatrix4fv(
+        static_cast<GLint>(s_shader_->GetUniformID("viewMatrix")),
+        1, GL_FALSE, static_cast<const float*>(view));
+    glUniformMatrix4fv(
+        static_cast<GLint>(s_shader_->GetUniformID("modelMatrix")),
+        1, GL_FALSE, static_cast<const float*>(model));
 
     /** Green for sphere, yellow for AABB **/
+    const GLint colorLoc = static_cast<GLint>(s_shader_->GetUniformID("wireColor"));
     if (type_ == Collider_type::SPHERE)
-        glUniform4f(s_u_color_, 0.0f, 1.0f, 0.2f, 1.0f);
+        glUniform4f(colorLoc, 0.0f, 1.0f, 0.2f, 1.0f);
     else
-        glUniform4f(s_u_color_, 1.0f, 0.85f, 0.0f, 1.0f);
+        glUniform4f(colorLoc, 1.0f, 0.85f, 0.0f, 1.0f);
 
     glBindVertexArray(vao_);
     glDrawArrays(GL_LINES, 0, line_vertex_count_);
