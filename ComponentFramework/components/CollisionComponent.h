@@ -38,7 +38,6 @@ protected:
      * Shared wireframe shader — A single shader will be used for all collision components
      */
     static Ref<ShaderComponent> s_shader_;
-    static int s_instance_count_;
 
     void BuildSphereWireframe(int segments = 32);
     void BuildAABBWireframe();

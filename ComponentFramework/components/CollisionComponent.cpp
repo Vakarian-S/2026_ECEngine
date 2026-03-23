@@ -4,7 +4,6 @@
 
 /** Static service definitions **/
 Ref<ShaderComponent> CollisionComponent::s_shader_ = nullptr;
-int CollisionComponent::s_instance_count_ = 0;
 
 void CollisionComponent::BuildSphereWireframe(int segments)
 {
@@ -86,37 +85,22 @@ void CollisionComponent::BuildAABBWireframe()
 CollisionComponent::CollisionComponent(WeakRef<Component> parent, float radius_)
     : Component(parent), type_(Collider_type::SPHERE), radius_(radius_)
 {
-    ++s_instance_count_;
 }
 
 CollisionComponent::CollisionComponent(WeakRef<Component> parent, AABB aabb_)
     : Component(parent), type_(Collider_type::AABB), aabb_(aabb_), radius_(0.0f)
 {
-    ++s_instance_count_;
 }
 
 CollisionComponent::CollisionComponent(WeakRef<Component> parent, MATHEX::Plane plane_)
     : Component(parent), type_(Collider_type::PLANE), plane_(plane_), radius_(0.0f)
 {
-    ++s_instance_count_;
 }
-
 CollisionComponent::~CollisionComponent()
 {
-    // Inline the GPU cleanup directly — avoids a virtual call in the destructor
     if (vao_) { glDeleteVertexArrays(1, &vao_); vao_ = 0; }
     if (vbo_) { glDeleteBuffers(1, &vbo_);      vbo_ = 0; }
     line_vertex_count_ = 0;
-
-    --s_instance_count_;
-    if (s_instance_count_ <= 0)
-    {
-        s_instance_count_ = 0;
-        /** Release the shared ShaderComponent — its destructor calls OnDestroy()
-         *  which detaches and deletes the GL program, exactly like every other
-         *  ShaderComponent in the scene already does. **/
-        s_shader_.reset();
-    }
 }
 
 bool CollisionComponent::OnCreate()
