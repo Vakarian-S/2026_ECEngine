@@ -59,9 +59,19 @@ private:
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
     std::vector<Ref<Actor>> chess_piece_actors_;
 
+    /**
+     * Actors grouped by piece type — populated alongside chess_piece_actors_ in OnCreate.
+     * Allows the ImGui launch panel to target a specific piece type and instance index.
+     */
+    std::unordered_map<Chess_pieces, std::vector<Ref<Actor>>> chess_piece_actors_map_;
+
     /** Meshes **/
     std::unordered_map<Chess_pieces, std::string> mesh_filenames_;
     std::unordered_map<Chess_pieces, Ref<MeshComponent>> chess_piece_meshes_;
+
+    /** ImGui launch-panel persistent state **/
+    int imgui_selected_piece_type_  = 0;
+    int imgui_selected_piece_index_ = 0;
 
     /**
      * Randomizes and initializes a firework's state on spawn.
@@ -113,8 +123,24 @@ private:
 
     /**
      * Removes the collision components for all the actors and disables collision wireframes and mode.
+     * Also strips any PhysicsComponents that were attached by LaunchPiece.
      */
     void ClearCollisionBounds();
+
+    /**
+     * Attaches a PhysicsComponent (if not already present) to the target actor and
+     * sets its velocity to a forward impulse, causing it to move each Update tick.
+     *
+     * @param actor The actor to launch.
+     */
+    void LaunchPiece(const Ref<Actor>& actor) const;
+
+    /**
+     * Integrates velocity for every actor that currently carries a PhysicsComponent.
+     *
+     * @param deltaTime Elapsed time in seconds since the last update.
+     */
+    void UpdatePhysics(float deltaTime) const;
 
     /**
      * Renders the ImGui Components on the screen

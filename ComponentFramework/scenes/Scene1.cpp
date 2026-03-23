@@ -195,6 +195,7 @@ bool Scene1::OnCreate()
                 actor->OnCreate();
                 actor->ListComponents();
                 chess_piece_actors_.push_back(actor);
+                chess_piece_actors_map_[chessPiece].push_back(actor);
             }
         }
         index++;
@@ -216,6 +217,7 @@ void Scene1::OnDestroy()
 #endif
 
     chess_piece_actors_.clear();
+    chess_piece_actors_map_.clear();
     chess_piece_meshes_.clear();
     point_lights_.clear();
     fireworks_.clear();
@@ -306,6 +308,9 @@ void Scene1::Update(float deltaTime)
 
     /** Moving Lights up and down just to look at them go **/
     UpdateFireworks(deltaTime);
+
+    /** Integrate velocity for any launched pieces **/
+    UpdatePhysics(deltaTime);
 }
 
 void Scene1::SpawnFirework(Firework& firework) const
@@ -710,17 +715,65 @@ void Scene1::UploadPointLightsToShader(
 }
 
 
+void Scene1::LaunchPiece(const Ref<Actor>& actor) const
+{
+    if (!actor) return;
+
+    Ref<PhysicsComponent> physics = actor->GetComponent<PhysicsComponent>();
+    if (!physics)
+    {
+        actor->AddComponent<PhysicsComponent>(WeakRef<Component>());
+        physics = actor->GetComponent<PhysicsComponent>();
+        if (!physics) return;
+        physics->mass_ = 1.0f;
+
+        /** Copy current transform so the PhysicsComponent starts at the right place **/
+        const Ref<TransformComponent> transform = actor->GetComponent<TransformComponent>();
+        if (transform)
+        {
+            physics->SetTransform(
+                transform->GetPosition(),
+                transform->GetQuaternion(),
+                transform->GetScale()
+            );
+        }
+        physics->OnCreate();
+    }
+    physics->velocity_ = Vec3(0.0f, 15.0f, 0.0f);
+}
+
+void Scene1::UpdatePhysics(const float deltaTime) const
+{
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        const Ref<PhysicsComponent> physics = piece->GetComponent<PhysicsComponent>();
+        if (!physics) continue;
+
+        const Vec3 velocity = physics->velocity_;
+        if (VMath::mag(velocity) < 0.0001f) continue;
+
+        const Ref<TransformComponent> transform = piece->GetComponent<TransformComponent>();
+        if (!transform) continue;
+
+        const Vec3 newPosition = transform->GetPosition() + velocity * deltaTime;
+        transform->SetPosition(newPosition);
+    }
+}
+
 void Scene1::ClearCollisionBounds()
 {
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {
         if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
             collisionComponent->OnDestroy();
-
         piece->RemoveComponent<CollisionComponent>();
+
+        /** Strip physics that was attached by LaunchPiece **/
+        piece->RemoveComponent<PhysicsComponent>();
     }
     collision_mode_ = Collision_mode::NONE;
     show_collision_wireframes_ = false;
+    imgui_selected_piece_index_ = 0;
 }
 
 void Scene1::GenerateSphereCollisions()
@@ -810,6 +863,53 @@ void Scene1::RenderImGui()
     if (collision_mode_ == Collision_mode::AABB) modeStr = "AABB";
     ImGui::Text("Active Mode : %s", modeStr);
     ImGui::Text("Pieces      : %zu", chess_piece_actors_.size());
+
+    ImGui::Spacing();
+    ImGui::SeparatorText("Launch Piece");
+
+    /** Piece-type labels in the same order as the Chess_pieces enum **/
+    static constexpr const char* kPieceLabels[] = {
+        "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"
+    };
+    static constexpr Chess_pieces kPieceTypes[] = {
+        Chess_pieces::PAWN, Chess_pieces::KNIGHT, Chess_pieces::BISHOP,
+        Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::KING
+    };
+    constexpr int kPieceTypeCount = static_cast<int>(std::size(kPieceLabels));
+
+    if (!hasColliders) ImGui::BeginDisabled();
+
+    ImGui::Combo("Type", &imgui_selected_piece_type_, kPieceLabels, kPieceTypeCount);
+
+    /** Clamp instance index to whatever this type actually has **/
+    const Chess_pieces selectedType = kPieceTypes[imgui_selected_piece_type_];
+    const auto mapIt = chess_piece_actors_map_.find(selectedType);
+    const int instanceCount = (mapIt != chess_piece_actors_map_.end())
+                                  ? static_cast<int>(mapIt->second.size())
+                                  : 0;
+
+    if (instanceCount > 0)
+    {
+        if (imgui_selected_piece_index_ >= instanceCount)
+            imgui_selected_piece_index_ = instanceCount - 1;
+
+        ImGui::SliderInt("Index", &imgui_selected_piece_index_, 0, instanceCount - 1);
+    }
+    else
+    {
+        ImGui::BeginDisabled();
+        int dummy = 0;
+        ImGui::SliderInt("Index", &dummy, 0, 0);
+        ImGui::EndDisabled();
+    }
+
+    if (!hasColliders) ImGui::EndDisabled();
+
+    const bool canLaunch = hasColliders && instanceCount > 0;
+    if (!canLaunch) ImGui::BeginDisabled();
+    if (ImGui::Button("Launch", ImVec2(-1.0f, 0.0f)))
+        LaunchPiece(mapIt->second[imgui_selected_piece_index_]);
+    if (!canLaunch) ImGui::EndDisabled();
 
     ImGui::End();
 
