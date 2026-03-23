@@ -71,6 +71,17 @@ public:
     }
 
     template <typename ComponentTemplate>
+    void RemoveComponent()
+    {
+        components.erase(
+            std::remove_if(components.begin(), components.end(),
+                [](const Ref<Component>& component) {
+                    return dynamic_cast<ComponentTemplate*>(component.get()) != nullptr;
+                }),
+            components.end());
+    }
+
+    template <typename ComponentTemplate>
     void RemoveAllComponents()
     {
         components.clear();

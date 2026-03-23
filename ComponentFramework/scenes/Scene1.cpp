@@ -11,6 +11,12 @@
 #include "../TransformComponent.h"
 #include "../MemoryDiagnostics.h"
 #include "../systems/CollisionSystem.h"
+#include "../components/CollisionComponent.h"
+
+/** ImGui **/
+#include "imgui.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_opengl3.h"
 
 
 Scene1::Scene1() : camera_(nullptr)
@@ -92,7 +98,7 @@ bool Scene1::OnCreate()
     board_->AddComponent<MaterialComponent>(WeakRef<Component>(), "textures/8x8_checkered_board.png");
     board_->OnCreate();
     board_->ListComponents();
-    
+
 
     /** Create Static Light **/
     auto ambientPointLight = std::make_shared<LightActor>(WeakRef<Component>());
@@ -516,6 +522,12 @@ void Scene1::Render() const
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
+
+    /** Render Wireframes **/
+    RenderCollisionWireframes();
+
+    /** Render ImGui **/
+    const_cast<Scene1*>(this)->RenderImGui();
 }
 
 void Scene1::ReferenceCountCheck(
@@ -695,4 +707,125 @@ void Scene1::UploadPointLightsToShader(
         pointLightAttenuationQuadraticPackedArray.data()
     );
     glUniform1f(static_cast<GLint>(shader->GetUniformID("specularShininessExponent")), 14.0f);
+}
+
+
+void Scene1::ClearCollisionBounds()
+{
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
+            collisionComponent->OnDestroy();
+
+        piece->RemoveComponent<CollisionComponent>();
+    }
+    collision_mode_ = Collision_mode::NONE;
+    show_collision_wireframes_ = false;
+}
+
+void Scene1::GenerateSphereCollisions()
+{
+    ClearCollisionBounds();
+
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        /** Hardcoded Values for dimension**/
+        constexpr float kMeshRadius = 7.0f;
+        constexpr float kScale = 0.50f;
+        constexpr float worldRadius = kMeshRadius * kScale;
+
+        piece->AddComponent<CollisionComponent>(WeakRef<Component>(), worldRadius);
+        if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
+            collisionComponent->OnCreate();
+    }
+
+    collision_mode_ = Collision_mode::SPHERE;
+}
+
+void Scene1::GenerateAABBCollisions()
+{
+    ClearCollisionBounds();
+
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        /** Hardcoded values for dimensions **/
+        constexpr float kScale = 0.75f;
+        constexpr float kHalfW = 3.5f * kScale; // ~half-width
+        constexpr float kHalfH = 7.0f * kScale; // ~half-height
+        constexpr float kHalfD = 3.5f * kScale; // ~half-depth
+
+        AABB box;
+        box.center = MATH::Vec3(0.0f, 0.0f, 0.0f);
+        box.halfExtents = MATH::Vec3(kHalfW, kHalfH, kHalfD);
+
+        piece->AddComponent<CollisionComponent>(WeakRef<Component>(), box);
+        if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
+            collisionComponent->OnCreate();
+    }
+
+    collision_mode_ = Collision_mode::AABB;
+}
+
+
+void Scene1::RenderImGui()
+{
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(280.0f, 0.0f), ImGuiCond_Always);
+    ImGui::Begin("Collision Controls", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+
+    ImGui::SeparatorText("Generate Collision Bounds");
+
+    if (ImGui::Button("Sphere Colliders", ImVec2(-1.0f, 0.0f)))
+        GenerateSphereCollisions();
+
+    if (ImGui::Button("AABB Colliders", ImVec2(-1.0f, 0.0f)))
+        GenerateAABBCollisions();
+
+    if (ImGui::Button("Clear Colliders", ImVec2(-1.0f, 0.0f)))
+        ClearCollisionBounds();
+
+    ImGui::Spacing();
+    ImGui::SeparatorText("Visualization");
+
+    const bool hasColliders = (collision_mode_ != Collision_mode::NONE);
+    if (!hasColliders) ImGui::BeginDisabled();
+    ImGui::Checkbox("Show Wireframes", &show_collision_wireframes_);
+    if (!hasColliders) ImGui::EndDisabled();
+
+    ImGui::Spacing();
+    ImGui::SeparatorText("Status");
+
+    const char* modeStr = "None";
+    if (collision_mode_ == Collision_mode::SPHERE) modeStr = "Sphere";
+    if (collision_mode_ == Collision_mode::AABB) modeStr = "AABB";
+    ImGui::Text("Active Mode : %s", modeStr);
+    ImGui::Text("Pieces      : %zu", chess_piece_actors_.size());
+
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Scene1::RenderCollisionWireframes() const
+{
+    if (!show_collision_wireframes_) return;
+
+    const MATH::Matrix4 proj = camera_->GetProjectionMatrix();
+    const MATH::Matrix4 view = camera_->GetViewMatrix();
+
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>();
+        if (!collisionComponent) continue;
+
+        /** Use the piece's own model matrix so the wireframe sits on top of the mesh **/
+        const MATH::Matrix4 model = piece->GetModelMatrix();
+        collisionComponent->RenderWireframe(proj, view, model);
+    }
 }

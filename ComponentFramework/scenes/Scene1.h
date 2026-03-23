@@ -29,7 +29,14 @@ enum class Check_context : uint8_t
 class Scene1 : public Scene
 {
 private:
-    
+    /** Types of Collision available for the system **/
+    enum class Collision_mode : uint8_t { NONE, SPHERE, AABB };
+
+    /** What type of collision we are using **/
+    Collision_mode collision_mode_ = Collision_mode::NONE;
+
+    /** Whether to show collision wireframes for components **/
+    bool show_collision_wireframes_ = false;
 
     /** Camera **/
     std::unique_ptr<CameraActor> camera_;
@@ -43,13 +50,11 @@ private:
     std::vector<Ref<Firework>> fireworks_;
     std::vector<std::weak_ptr<LightActor>> all_lights_;
     mutable std::mt19937 fireworks_random_seed_;
-    
+
     Vec3 light_height_ = Vec3(0.0, 0.0, 0.0);
     bool going_up_ = true;
     size_t static_point_light_count_ = 0;
 
-    
-    
 
     /** Since we do not need any gameplay logic, no need to differentiate pieces **/
     std::vector<Ref<Actor>> chess_piece_actors_;
@@ -95,6 +100,27 @@ private:
     static void UploadPointLightsToShader(
         const Ref<ShaderComponent>& shader,
         const std::vector<std::weak_ptr<LightActor>>& pointLightActorList);
+
+    /**
+     * Adds a collision component to all actors using a Sphere collision detection.
+     */
+    void GenerateSphereCollisions();
+    
+    /**
+     * Adds a collision component to all actors using a bounding box collision detection.
+     */
+    void GenerateAABBCollisions();
+
+    /**
+     * Removes the collision components for all the actors and disables collision wireframes and mode.
+     */
+    void ClearCollisionBounds();
+
+    /**
+     * Renders the ImGui Components on the screen
+     */
+    void RenderImGui();
+    void RenderCollisionWireframes() const;
 
 public:
     Scene1();

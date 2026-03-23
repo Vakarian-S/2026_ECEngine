@@ -3,11 +3,17 @@
 #include "Timer.h"
 #include "Window.h"
 #include "scenes/Scene1.h"
+#include "Debug.h"
+
+// ImGui
+#include "imgui.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_opengl3.h"
 
 
 SceneManager::SceneManager(): 
 	currentScene{nullptr}, window{nullptr}, timer{nullptr},
-	fps(60), isRunning{false}, fullScreen{false} {
+	fps(60), isRunning{false}, fullScreen{false}, imguiInitialized{false} {
 	Debug::Info("Starting the SceneManager", __FILE__, __LINE__);
 }
 
@@ -19,6 +25,8 @@ SceneManager::~SceneManager() {
 		delete currentScene;
 		currentScene = nullptr;
 	}
+
+	ShutdownImGui();
 	
 	if (timer) {
 		delete timer;
@@ -45,6 +53,9 @@ bool SceneManager::Initialize(std::string name_, int width_, int height_) {
 		Debug::FatalError("Failed to initialize Timer object", __FILE__, __LINE__);
 		return false;
 	}
+
+	InitImGui();
+
 	/********************************   Default first scene   ***********************/
 	BuildNewScene(SCENE_NUMBER::SCENE1);
 	/********************************************************************************/
@@ -69,6 +80,11 @@ void SceneManager::Run() {
 void SceneManager::HandleEvents() {
 	SDL_Event sdlEvent;
 	while (SDL_PollEvent(&sdlEvent)) { /// Loop over all events in the SDL queue
+
+		/** Forward all events to ImGui first **/
+		if (imguiInitialized)
+			ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
+
 		if (sdlEvent.type == SDL_EventType::SDL_EVENT_QUIT) {
 			isRunning = false;
 			return;
@@ -130,6 +146,35 @@ bool SceneManager::BuildNewScene(SCENE_NUMBER scene) {
 		return false;
 	}
 	return true;
+}
+
+void SceneManager::InitImGui()
+{
+	if (imguiInitialized) return;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+	ImGui::StyleColorsDark();
+
+	/** SDL3 + OpenGL3 backend **/
+	ImGui_ImplSDL3_InitForOpenGL(window->getWindow(), SDL_GL_GetCurrentContext());
+	ImGui_ImplOpenGL3_Init("#version 450");
+
+	imguiInitialized = true;
+	Debug::Info("ImGui initialized", __FILE__, __LINE__);
+}
+
+void SceneManager::ShutdownImGui()
+{
+	if (!imguiInitialized) return;
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
+	ImGui::DestroyContext();
+	imguiInitialized = false;
 }
 
 

@@ -2,6 +2,7 @@
 #define SCENEMANAGER_H
 
 #include <string>
+
 class SceneManager  {
 public:
 	
@@ -31,7 +32,11 @@ private:
 	unsigned int fps;
 	bool isRunning;
 	bool fullScreen;
+	bool imguiInitialized;
 	bool BuildNewScene(SCENE_NUMBER scene_);
+
+	void InitImGui();
+	void ShutdownImGui();
 };
 
 
