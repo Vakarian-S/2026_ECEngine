@@ -725,7 +725,6 @@ void Scene1::LaunchPiece(const Ref<Actor>& actor) const
         actor->AddComponent<PhysicsComponent>(WeakRef<Component>());
         physics = actor->GetComponent<PhysicsComponent>();
         if (!physics) return;
-        physics->mass_ = 1.0f;
 
         /** Copy current transform so the PhysicsComponent starts at the right place **/
         const Ref<TransformComponent> transform = actor->GetComponent<TransformComponent>();
@@ -739,15 +738,16 @@ void Scene1::LaunchPiece(const Ref<Actor>& actor) const
         }
         physics->OnCreate();
     }
+    physics->mass_ = 1.0f;
     physics->velocity_ = Vec3(0.0f, 15.0f, 0.0f);
 }
 
-void Scene1::UpdatePhysics(const float deltaTime) const
+void Scene1::UpdatePhysics(const float deltaTime)
 {
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {
         const Ref<PhysicsComponent> physics = piece->GetComponent<PhysicsComponent>();
-        if (!physics) continue;
+        if (!physics || physics->mass_ == 0.0f) continue;
 
         const Vec3 velocity = physics->velocity_;
         if (VMath::mag(velocity) < 0.0001f) continue;
@@ -755,9 +755,11 @@ void Scene1::UpdatePhysics(const float deltaTime) const
         const Ref<TransformComponent> transform = piece->GetComponent<TransformComponent>();
         if (!transform) continue;
 
-        const Vec3 newPosition = transform->GetPosition() + velocity * deltaTime;
-        transform->SetPosition(newPosition);
+        transform->SetPosition(transform->GetPosition() + velocity * deltaTime);
     }
+
+    /** Run collision detection and response for all registered actors **/
+    collision_system_.Update(deltaTime);
 }
 
 void Scene1::ClearCollisionBounds()
@@ -768,9 +770,11 @@ void Scene1::ClearCollisionBounds()
             collisionComponent->OnDestroy();
         piece->RemoveComponent<CollisionComponent>();
 
-        /** Strip physics that was attached by LaunchPiece **/
+        /** Strip physics that was attached by LaunchPiece or GenerateXCollisions **/
         piece->RemoveComponent<PhysicsComponent>();
     }
+
+    collision_system_.ClearActors();
     collision_mode_ = Collision_mode::NONE;
     show_collision_wireframes_ = false;
     imgui_selected_piece_index_ = 0;
@@ -795,6 +799,22 @@ void Scene1::GenerateSphereCollisions()
     }
 
     collision_mode_ = Collision_mode::SPHERE;
+
+    /** Register all pieces as static bodies (mass=0). LaunchPiece promotes to mass=1. **/
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        piece->AddComponent<PhysicsComponent>(WeakRef<Component>());
+        const Ref<PhysicsComponent> pc = piece->GetComponent<PhysicsComponent>();
+        if (pc)
+        {
+            pc->mass_ = 0.0f;
+            pc->velocity_ = Vec3(0.0f, 0.0f, 0.0f);
+            const Ref<TransformComponent> tc = piece->GetComponent<TransformComponent>();
+            if (tc) pc->SetTransform(tc->GetPosition(), tc->GetQuaternion(), tc->GetScale());
+            pc->OnCreate();
+        }
+        collision_system_.AddActor(piece);
+    }
 }
 
 void Scene1::GenerateAABBCollisions()
@@ -822,6 +842,22 @@ void Scene1::GenerateAABBCollisions()
     }
 
     collision_mode_ = Collision_mode::AABB;
+
+    /** Register all pieces as static bodies (mass=0). LaunchPiece promotes to mass=1. **/
+    for (const Ref<Actor>& piece : chess_piece_actors_)
+    {
+        piece->AddComponent<PhysicsComponent>(WeakRef<Component>());
+        const Ref<PhysicsComponent> pc = piece->GetComponent<PhysicsComponent>();
+        if (pc)
+        {
+            pc->mass_ = 0.0f;
+            pc->velocity_ = Vec3(0.0f, 0.0f, 0.0f);
+            const Ref<TransformComponent> tc = piece->GetComponent<TransformComponent>();
+            if (tc) pc->SetTransform(tc->GetPosition(), tc->GetQuaternion(), tc->GetScale());
+            pc->OnCreate();
+        }
+        collision_system_.AddActor(piece);
+    }
 }
 
 

@@ -29,7 +29,10 @@ public:
         }
         colliding_actors_.push_back(actor);
     }
-    
+
+    /** Removes all registered actors — call this before re-generating colliders **/
+    void ClearActors() { colliding_actors_.clear(); }
+
     bool CollisionDetection(const Sphere &s1, const Sphere &s2) const; 
     bool CollisionDetection(const AABB &bb1, const AABB &bb2) const;    
     bool CollisionDetection(const Sphere s1, const MATHEX::Plane p1) const;

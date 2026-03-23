@@ -9,6 +9,8 @@
 #include "../MeshComponent.h"
 #include "../actors/LightActor.h"
 #include "../structs/Firework.h"
+#include "../components/PhysicsComponent.h"
+#include "../systems/CollisionSystem.h"
 
 enum class Chess_pieces: uint8_t
 {
@@ -37,6 +39,9 @@ private:
 
     /** Whether to show collision wireframes for components **/
     bool show_collision_wireframes_ = false;
+
+    /** Systems **/
+    CollisionSystem collision_system_;
 
     /** Camera **/
     std::unique_ptr<CameraActor> camera_;
@@ -70,8 +75,9 @@ private:
     std::unordered_map<Chess_pieces, Ref<MeshComponent>> chess_piece_meshes_;
 
     /** ImGui launch-panel persistent state **/
-    int imgui_selected_piece_type_  = 0;
+    int imgui_selected_piece_type_ = 0;
     int imgui_selected_piece_index_ = 0;
+
 
     /**
      * Randomizes and initializes a firework's state on spawn.
@@ -115,7 +121,7 @@ private:
      * Adds a collision component to all actors using a Sphere collision detection.
      */
     void GenerateSphereCollisions();
-    
+
     /**
      * Adds a collision component to all actors using a bounding box collision detection.
      */
@@ -136,11 +142,12 @@ private:
     void LaunchPiece(const Ref<Actor>& actor) const;
 
     /**
-     * Integrates velocity for every actor that currently carries a PhysicsComponent.
+     * Integrates velocity for every actor that currently carries a PhysicsComponent,
+     * then runs the collision system for the frame.
      *
      * @param deltaTime Elapsed time in seconds since the last update.
      */
-    void UpdatePhysics(float deltaTime) const;
+    void UpdatePhysics(float deltaTime);
 
     /**
      * Renders the ImGui Components on the screen
