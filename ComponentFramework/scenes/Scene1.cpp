@@ -19,7 +19,7 @@
 #include "imgui_impl_opengl3.h"
 
 
-Scene1::Scene1() : camera_(nullptr)
+Scene1::Scene1() : camera_free_(nullptr), camera_top_(nullptr), camera_left_(nullptr), camera_right_(nullptr)
 {
     /** Generate a random seed on every construction so that everytime it is different **/
     const auto seed = static_cast<uint32_t>(
@@ -78,10 +78,35 @@ Vec3 Scene1::GetRelativeTransformOnBoard(const int row, const int col)
 
 bool Scene1::OnCreate()
 {
-    /** Setup Camera **/
-    camera_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
-    camera_->AddComponent<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, 2.0f, 25.0f), Quaternion());
-    camera_->OnCreate();
+    /** Setup Cameras **/
+    /** Free / movable camera **/
+    camera_free_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_free_->AddComponent<TransformComponent>(WeakRef<Component>(), Vec3(0.0f, 2.0f, 25.0f), Quaternion());
+    camera_free_->OnCreate();
+
+    /** Top-down camera: positioned high above, looking straight down (-Y axis) **/
+    camera_top_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_top_->AddComponent<TransformComponent>(WeakRef<Component>(),
+        Vec3(0.0f, 40.0f, 0.0f),
+        QMath::angleAxisRotation(-90.0f, Vec3(1.0f, 0.0f, 0.0f)));
+    camera_top_->OnCreate();
+
+    /** Left-side camera: sits on the -X axis and looks toward +X (origin).
+     *  Rotate Y by -90° so camera -Z points toward +X. **/
+    camera_left_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_left_->AddComponent<TransformComponent>(WeakRef<Component>(),
+        Vec3(-30.0f, 2.0f, 0.0f),
+        QMath::angleAxisRotation(-90.0f, Vec3(0.0f, 1.0f, 0.0f)));
+    camera_left_->OnCreate();
+
+    /** Right-side camera: sits on the +X axis and looks toward -X (origin).
+     *  Rotate Y by +90° so camera -Z points toward -X. **/
+    camera_right_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
+    camera_right_->AddComponent<TransformComponent>(WeakRef<Component>(),
+        Vec3(30.0f, 2.0f, 0.0f),
+        QMath::angleAxisRotation(90.0f, Vec3(0.0f, 1.0f, 0.0f)));
+    camera_right_->OnCreate();
+
 
 
     /** Create Board **/
@@ -255,21 +280,24 @@ void Scene1::HandleEvents(const SDL_Event& sdlEvent)
 
 void Scene1::Update(float deltaTime)
 {
-    /** Camera movement **/
-    const bool* keyboardState = SDL_GetKeyboardState(nullptr);
-    Vec3 velocity(0.0f, 0.0f, 0.0f);
-    float CameraSpeed = 20.0f;
-    if (keyboardState[SDL_SCANCODE_W]) velocity.z -= CameraSpeed;
-    if (keyboardState[SDL_SCANCODE_S]) velocity.z += CameraSpeed;
-    if (keyboardState[SDL_SCANCODE_A]) velocity.x -= CameraSpeed;
-    if (keyboardState[SDL_SCANCODE_D]) velocity.x += CameraSpeed;
-    if (keyboardState[SDL_SCANCODE_SPACE]) velocity.y += CameraSpeed;
-    if (keyboardState[SDL_SCANCODE_LSHIFT]) velocity.y -= CameraSpeed;
-    if (VMath::mag(velocity) > 0.0f)
+    /** Camera movement — only for the free/movable camera **/
+    if (camera_mode_ == Camera_mode::FREE)
     {
-        velocity = VMath::normalize(velocity);
-        Vec3 displacement = velocity * CameraSpeed * deltaTime;
-        camera_->SetView(camera_->GetOrientation(), camera_->freeCameraMovement(displacement));
+        const bool* keyboardState = SDL_GetKeyboardState(nullptr);
+        Vec3 velocity(0.0f, 0.0f, 0.0f);
+        float CameraSpeed = 20.0f;
+        if (keyboardState[SDL_SCANCODE_W]) velocity.z -= CameraSpeed;
+        if (keyboardState[SDL_SCANCODE_S]) velocity.z += CameraSpeed;
+        if (keyboardState[SDL_SCANCODE_A]) velocity.x -= CameraSpeed;
+        if (keyboardState[SDL_SCANCODE_D]) velocity.x += CameraSpeed;
+        if (keyboardState[SDL_SCANCODE_SPACE]) velocity.y += CameraSpeed;
+        if (keyboardState[SDL_SCANCODE_LSHIFT]) velocity.y -= CameraSpeed;
+        if (VMath::mag(velocity) > 0.0f)
+        {
+            velocity = VMath::normalize(velocity);
+            Vec3 displacement = velocity * CameraSpeed * deltaTime;
+            camera_free_->SetView(camera_free_->GetOrientation(), camera_free_->freeCameraMovement(displacement));
+        }
     }
 
     /** Rotate the Board using slerp because why not **/
@@ -474,18 +502,19 @@ void Scene1::Render() const
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
+    const CameraActor* activeCamera = GetActiveCamera();
     const Ref<ShaderComponent> shader = board_->GetComponent<ShaderComponent>();
 
     glUseProgram(shader->GetProgram());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
-                       camera_->GetProjectionMatrix());
-    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, camera_->GetViewMatrix());
+                       activeCamera->GetProjectionMatrix());
+    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, activeCamera->GetViewMatrix());
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
                  Vec4(1.0f, 0.0f, 0.5f, 0.0f));
 
 
     glUniform3fv(static_cast<GLint>(shader->GetUniformID("cameraWorldPosition")), 1,
-                 camera_->GetComponent<TransformComponent>()->GetPosition());
+                 activeCamera->GetComponent<TransformComponent>()->GetPosition());
 
     /** Render Point Light Models **/
     glUniform1i(
@@ -863,6 +892,18 @@ void Scene1::GenerateAABBCollisions()
 }
 
 
+CameraActor* Scene1::GetActiveCamera() const
+{
+    switch (camera_mode_)
+    {
+    case Camera_mode::TOP:   return camera_top_.get();
+    case Camera_mode::LEFT:  return camera_left_.get();
+    case Camera_mode::RIGHT: return camera_right_.get();
+    case Camera_mode::FREE:
+    default:                 return camera_free_.get();
+    }
+}
+
 void Scene1::RenderImGui()
 {
     ImGui_ImplOpenGL3_NewFrame();
@@ -874,6 +915,33 @@ void Scene1::RenderImGui()
     ImGui::Begin("Collision Controls", nullptr,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
 
+    /** ── Camera View ── **/
+    ImGui::SeparatorText("Camera View");
+
+    auto cameraButton = [&](const char* label, Camera_mode mode)
+    {
+        const bool isActive = (camera_mode_ == mode);
+        if (isActive)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.26f, 0.59f, 0.98f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.40f, 0.70f, 1.00f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.20f, 0.50f, 0.90f, 1.00f));
+        }
+        if (ImGui::Button(label, ImVec2(60.0f, 0.0f)))
+            camera_mode_ = mode;
+        if (isActive)
+            ImGui::PopStyleColor(3);
+    };
+
+    cameraButton("Free",  Camera_mode::FREE);
+    ImGui::SameLine();
+    cameraButton("Top",   Camera_mode::TOP);
+    ImGui::SameLine();
+    cameraButton("Left",  Camera_mode::LEFT);
+    ImGui::SameLine();
+    cameraButton("Right", Camera_mode::RIGHT);
+
+    ImGui::Spacing();
     ImGui::SeparatorText("Generate Collision Bounds");
 
     if (ImGui::Button("Sphere Colliders", ImVec2(-1.0f, 0.0f)))
@@ -959,8 +1027,8 @@ void Scene1::RenderCollisionWireframes() const
 {
     if (!show_collision_wireframes_) return;
 
-    const MATH::Matrix4 proj = camera_->GetProjectionMatrix();
-    const MATH::Matrix4 view = camera_->GetViewMatrix();
+    const MATH::Matrix4 proj = GetActiveCamera()->GetProjectionMatrix();
+    const MATH::Matrix4 view = GetActiveCamera()->GetViewMatrix();
 
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {

@@ -17,8 +17,8 @@ public:
     CameraActor(WeakRef<Component> parent, float fieldOfView, float aspectRatio, float near, float far);
     ~CameraActor();
     bool OnCreate() override;
-    MATH::Matrix4 GetProjectionMatrix() { return projectionMatrix; }
-    MATH::Quaternion GetOrientation() { return orientation; }
+    MATH::Matrix4 GetProjectionMatrix() const { return projectionMatrix; }
+    MATH::Quaternion GetOrientation() const { return orientation; }
 
     Vec3 freeCameraMovement(const Vec3& direction) const
     {

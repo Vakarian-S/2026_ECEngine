@@ -31,6 +31,9 @@ enum class Check_context : uint8_t
 class Scene1 : public Scene
 {
 private:
+    /** Camera view modes **/
+    enum class Camera_mode : uint8_t { FREE = 0, TOP, LEFT, RIGHT };
+
     /** Types of Collision available for the system **/
     enum class Collision_mode : uint8_t { NONE, SPHERE, AABB };
 
@@ -44,7 +47,14 @@ private:
     CollisionSystem collision_system_;
 
     /** Camera **/
-    std::unique_ptr<CameraActor> camera_;
+    std::unique_ptr<CameraActor> camera_free_;
+    std::unique_ptr<CameraActor> camera_top_;
+    std::unique_ptr<CameraActor> camera_left_;
+    std::unique_ptr<CameraActor> camera_right_;
+    Camera_mode camera_mode_ = Camera_mode::FREE;
+
+    /** Returns whichever camera is currently active **/
+    CameraActor* GetActiveCamera() const;
 
     /** Board **/
     Ref<Actor> board_;
