@@ -62,7 +62,7 @@ static void AABBAABBCollisionResponse(
     const float v1P = MATH::VMath::dot(v1, n);
     const float v2P = MATH::VMath::dot(v2, n);
 
-    if (v1P - v2P > 0.0f) return;  // already separating
+    if (v1P - v2P > 0.0f) return; // already separating
     if (m1 == 0.0f && m2 == 0.0f) return;
 
     if (m1 == 0.0f)
@@ -91,9 +91,10 @@ static void AABBAABBCollisionResponse(
 void CollisionSystem::SphereSphereCollisionResponse(Sphere s1, Ref<PhysicsComponent> pc1, Sphere s2,
                                                     Ref<PhysicsComponent> pc2)
 {
+    std::cout << "Sphere-Sphere Collision Response" << std::endl;
     const MATH::Vec3 L = s1.center - s2.center;
     const float lenSq = MATH::VMath::dot(L, L);
-    if (lenSq < 1e-8f) return;  // coincident centers — skip
+    if (lenSq < 1e-8f) return; // coincident centers — skip
     const MATH::Vec3 n = L * (1.0f / std::sqrt(lenSq));
 
     constexpr float e = 1.0f;
@@ -134,11 +135,18 @@ void CollisionSystem::Update(const float /*deltaTime*/)
     const size_t count = colliding_actors_.size();
     if (count < 2) return;
 
+    // Reset collision flags from the previous frame
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (const Ref<CollisionComponent> cc = colliding_actors_[i]->GetComponent<CollisionComponent>())
+            cc->SetColliding(false);
+    }
+
     for (size_t i = 0; i < count - 1; ++i)
     {
         const Ref<Actor>& actorA = colliding_actors_[i];
         const Ref<CollisionComponent> ccA = actorA->GetComponent<CollisionComponent>();
-        const Ref<PhysicsComponent>   pcA = actorA->GetComponent<PhysicsComponent>();
+        const Ref<PhysicsComponent> pcA = actorA->GetComponent<PhysicsComponent>();
         const Ref<TransformComponent> tcA = actorA->GetComponent<TransformComponent>();
         if (!ccA || !pcA || !tcA) continue;
 
@@ -148,7 +156,7 @@ void CollisionSystem::Update(const float /*deltaTime*/)
         {
             const Ref<Actor>& actorB = colliding_actors_[j];
             const Ref<CollisionComponent> ccB = actorB->GetComponent<CollisionComponent>();
-            const Ref<PhysicsComponent>   pcB = actorB->GetComponent<PhysicsComponent>();
+            const Ref<PhysicsComponent> pcB = actorB->GetComponent<PhysicsComponent>();
             const Ref<TransformComponent> tcB = actorB->GetComponent<TransformComponent>();
             if (!ccB || !pcB || !tcB) continue;
 
@@ -156,23 +164,33 @@ void CollisionSystem::Update(const float /*deltaTime*/)
             const Collider_type typeA = ccA->GetType();
             const Collider_type typeB = ccB->GetType();
 
+
             if (typeA == Collider_type::SPHERE && typeB == Collider_type::SPHERE)
             {
                 /** World-space spheres: actor position + local offset **/
-                const Sphere sA{ ccA->GetRadius(), posA + ccA->GetLocalOffset() };
-                const Sphere sB{ ccB->GetRadius(), posB + ccB->GetLocalOffset() };
+                const Sphere sA{ccA->GetRadius(), posA + ccA->GetLocalOffset()};
+                const Sphere sB{ccB->GetRadius(), posB + ccB->GetLocalOffset()};
+
 
                 if (CollisionDetection(sA, sB))
+                {
+                    ccA->SetColliding(true);
+                    ccB->SetColliding(true);
                     SphereSphereCollisionResponse(sA, pcA, sB, pcB);
+                }
             }
             else if (typeA == Collider_type::AABB && typeB == Collider_type::AABB)
             {
                 /** World-space AABBs: actor position + local offset + aabb local center **/
-                const AABB wA{ posA + ccA->GetLocalOffset() + ccA->GetAABB().center, ccA->GetAABB().halfExtents };
-                const AABB wB{ posB + ccB->GetLocalOffset() + ccB->GetAABB().center, ccB->GetAABB().halfExtents };
+                const AABB wA{posA + ccA->GetLocalOffset() + ccA->GetAABB().center, ccA->GetAABB().halfExtents};
+                const AABB wB{posB + ccB->GetLocalOffset() + ccB->GetAABB().center, ccB->GetAABB().halfExtents};
 
                 if (CollisionDetection(wA, wB))
+                {
+                    ccA->SetColliding(true);
+                    ccB->SetColliding(true);
                     AABBAABBCollisionResponse(wA, pcA, wB, pcB);
+                }
             }
         }
     }

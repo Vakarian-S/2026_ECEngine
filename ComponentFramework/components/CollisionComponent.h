@@ -38,6 +38,17 @@ protected:
      */
     MATH::Vec3 local_offset_ = MATH::Vec3(0.0f, 0.0f, 0.0f);
 
+    /**
+     * The actor's uniform scale (x component is used).
+     * Because the model matrix includes scale, the wireframe geometry must be
+     * pre-divided by this value so it renders at the correct world-space size.
+     * Must be set before OnCreate() to take effect.
+     */
+    float actor_scale_ = 1.0f;
+
+    /** Set to true by the CollisionSystem when this component is involved in a collision this frame. **/
+    bool is_colliding_ = false;
+
     /** Per-instance GPU wireframe geometry **/
     GLuint vao_ = 0;
     GLuint vbo_ = 0;
@@ -73,4 +84,10 @@ public:
 
     void SetLocalOffset(const MATH::Vec3& offset) { local_offset_ = offset; }
     [[nodiscard]] MATH::Vec3 GetLocalOffset() const { return local_offset_; }
+
+    /** Set the actor's uniform scale so the wireframe compensates for it. Must be called before OnCreate(). **/
+    void SetActorScale(float scale) { actor_scale_ = scale; }
+
+    void SetColliding(bool colliding) { is_colliding_ = colliding; }
+    [[nodiscard]] bool IsColliding() const { return is_colliding_; }
 };

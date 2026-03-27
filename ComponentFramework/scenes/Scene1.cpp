@@ -167,8 +167,9 @@ bool Scene1::OnCreate()
     for (auto const& color : {"textures/White Chess Base Colour.png", "textures/Black Chess Base Colour.png"})
     {
         for (const auto chessPiece : {
-                 Chess_pieces::KING, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
-                 Chess_pieces::KNIGHT
+                 Chess_pieces::KING
+            //, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
+              //   Chess_pieces::KNIGHT
              })
         {
             for (const auto colPosition : GetColPositionListByPiece(chessPiece))
@@ -720,6 +721,7 @@ void Scene1::LaunchPiece(const Ref<Actor>& actor) const
     if (!actor) return;
 
     Ref<PhysicsComponent> physics = actor->GetComponent<PhysicsComponent>();
+    /** In case that for some reason there is no physics component **/
     if (!physics)
     {
         actor->AddComponent<PhysicsComponent>(WeakRef<Component>());
@@ -738,8 +740,7 @@ void Scene1::LaunchPiece(const Ref<Actor>& actor) const
         }
         physics->OnCreate();
     }
-    physics->mass_ = 1.0f;
-    physics->velocity_ = Vec3(0.0f, 15.0f, 0.0f);
+    physics->velocity_ = Vec3(0.0f, 5.0f, 0.0f);
 }
 
 void Scene1::UpdatePhysics(const float deltaTime)
@@ -786,14 +787,13 @@ void Scene1::GenerateSphereCollisions()
 
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {
-        constexpr float kMeshRadius = 7.0f;
-        constexpr float kScale = 0.50f;
-        constexpr float worldRadius = kMeshRadius * kScale;
-
-        piece->AddComponent<CollisionComponent>(WeakRef<Component>(), worldRadius);
+        constexpr float kMeshRadius = 1.0f;
+        piece->AddComponent<CollisionComponent>(WeakRef<Component>(), kMeshRadius);
         if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
         {
-            collisionComponent->SetLocalOffset(MATH::Vec3(0.0f, worldRadius, 0.0f));
+            const Ref<TransformComponent> tc = piece->GetComponent<TransformComponent>();
+            if (tc) collisionComponent->SetActorScale(tc->GetScale().x);
+            collisionComponent->SetLocalOffset(MATH::Vec3(0.0f, kMeshRadius, 0.0f));
             collisionComponent->OnCreate();
         }
     }
@@ -807,12 +807,13 @@ void Scene1::GenerateSphereCollisions()
         const Ref<PhysicsComponent> pc = piece->GetComponent<PhysicsComponent>();
         if (pc)
         {
-            pc->mass_ = 0.0f;
+            pc->mass_ = 1.0f;
             pc->velocity_ = Vec3(0.0f, 0.0f, 0.0f);
             const Ref<TransformComponent> tc = piece->GetComponent<TransformComponent>();
             if (tc) pc->SetTransform(tc->GetPosition(), tc->GetQuaternion(), tc->GetScale());
             pc->OnCreate();
         }
+        
         collision_system_.AddActor(piece);
     }
 }
@@ -824,10 +825,9 @@ void Scene1::GenerateAABBCollisions()
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {
         /** Hardcoded values for dimensions **/
-        constexpr float kScale = 0.75f;
-        constexpr float kHalfW = 3.5f * kScale;
-        constexpr float kHalfH = 7.0f * kScale;
-        constexpr float kHalfD = 3.5f * kScale;
+        constexpr float kHalfW = 0.5f;
+        constexpr float kHalfH = 1.0f;
+        constexpr float kHalfD = 0.5f;
 
         AABB box;
         box.center = MATH::Vec3(0.0f, 0.0f, 0.0f);
@@ -836,6 +836,8 @@ void Scene1::GenerateAABBCollisions()
         piece->AddComponent<CollisionComponent>(WeakRef<Component>(), box);
         if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
         {
+            const Ref<TransformComponent> tc = piece->GetComponent<TransformComponent>();
+            if (tc) collisionComponent->SetActorScale(tc->GetScale().x);
             collisionComponent->SetLocalOffset(MATH::Vec3(0.0f, kHalfH, 0.0f));
             collisionComponent->OnCreate();
         }
@@ -850,7 +852,7 @@ void Scene1::GenerateAABBCollisions()
         const Ref<PhysicsComponent> pc = piece->GetComponent<PhysicsComponent>();
         if (pc)
         {
-            pc->mass_ = 0.0f;
+            pc->mass_ = 1.0f;
             pc->velocity_ = Vec3(0.0f, 0.0f, 0.0f);
             const Ref<TransformComponent> tc = piece->GetComponent<TransformComponent>();
             if (tc) pc->SetTransform(tc->GetPosition(), tc->GetQuaternion(), tc->GetScale());

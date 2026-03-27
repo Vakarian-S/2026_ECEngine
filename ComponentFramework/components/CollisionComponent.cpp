@@ -9,6 +9,14 @@ void CollisionComponent::BuildSphereWireframe(int segments)
 {
     std::vector<float> verts;
 
+    // Divide by actor_scale_ so that after the model matrix multiplies by scale,
+    // the rendered radius equals radius_ in world space.
+    const float s = (actor_scale_ > 0.0f) ? actor_scale_ : 1.0f;
+    const float r = radius_ / s;
+    const float ox = local_offset_.x / s;
+    const float oy = local_offset_.y / s;
+    const float oz = local_offset_.z / s;
+
     const float pi = 3.14159265358979323846f;
     for (int plane = 0; plane < 3; ++plane)
     {
@@ -17,34 +25,34 @@ void CollisionComponent::BuildSphereWireframe(int segments)
             float a0 = (2.0f * pi * i) / segments;
             float a1 = (2.0f * pi * (i + 1)) / segments;
 
-            float x0 = radius_ * std::cos(a0);
-            float y0 = radius_ * std::sin(a0);
-            float x1 = radius_ * std::cos(a1);
-            float y1 = radius_ * std::sin(a1);
+            float x0 = r * std::cos(a0);
+            float y0 = r * std::sin(a0);
+            float x1 = r * std::cos(a1);
+            float y1 = r * std::sin(a1);
 
             // XY plane
             if (plane == 0)
             {
                 verts.insert(verts.end(), {
-                    local_offset_.x + x0, local_offset_.y + y0, local_offset_.z,
-                    local_offset_.x + x1, local_offset_.y + y1, local_offset_.z
-                });
+                                 ox + x0, oy + y0, oz,
+                                 ox + x1, oy + y1, oz
+                             });
             }
             // XZ plane
             if (plane == 1)
             {
                 verts.insert(verts.end(), {
-                    local_offset_.x + x0, local_offset_.y,        local_offset_.z + y0,
-                    local_offset_.x + x1, local_offset_.y,        local_offset_.z + y1
-                });
+                                 ox + x0, oy, oz + y0,
+                                 ox + x1, oy, oz + y1
+                             });
             }
             // YZ plane
             if (plane == 2)
             {
                 verts.insert(verts.end(), {
-                    local_offset_.x,       local_offset_.y + x0, local_offset_.z + y0,
-                    local_offset_.x,       local_offset_.y + x1, local_offset_.z + y1
-                });
+                                 ox, oy + x0, oz + y0,
+                                 ox, oy + x1, oz + y1
+                             });
             }
         }
     }
@@ -63,13 +71,15 @@ void CollisionComponent::BuildSphereWireframe(int segments)
 
 void CollisionComponent::BuildAABBWireframe()
 {
+    const float s = (actor_scale_ > 0.0f) ? actor_scale_ : 1.0f;
     const MATH::Vec3& c = aabb_.center;
     const MATH::Vec3& h = aabb_.halfExtents;
 
     // 8 corners — offset applied so the box sits above the mesh origin
-    float x0 = local_offset_.x + c.x - h.x,  x1 = local_offset_.x + c.x + h.x;
-    float y0 = local_offset_.y + c.y - h.y,  y1 = local_offset_.y + c.y + h.y;
-    float z0 = local_offset_.z + c.z - h.z,  z1 = local_offset_.z + c.z + h.z;
+    // All values pre-divided by scale so the model matrix brings them back to world size.
+    float x0 = (local_offset_.x + c.x - h.x) / s, x1 = (local_offset_.x + c.x + h.x) / s;
+    float y0 = (local_offset_.y + c.y - h.y) / s, y1 = (local_offset_.y + c.y + h.y) / s;
+    float z0 = (local_offset_.z + c.z - h.z) / s, z1 = (local_offset_.z + c.z + h.z) / s;
 
     // 12 edges, 2 verts each = 24 verts
     std::vector<float> verts = {
@@ -116,10 +126,19 @@ CollisionComponent::CollisionComponent(WeakRef<Component> parent, MATHEX::Plane 
     : Component(parent), type_(Collider_type::PLANE), plane_(plane_), radius_(0.0f)
 {
 }
+
 CollisionComponent::~CollisionComponent()
 {
-    if (vao_) { glDeleteVertexArrays(1, &vao_); vao_ = 0; }
-    if (vbo_) { glDeleteBuffers(1, &vbo_);      vbo_ = 0; }
+    if (vao_)
+    {
+        glDeleteVertexArrays(1, &vao_);
+        vao_ = 0;
+    }
+    if (vbo_)
+    {
+        glDeleteBuffers(1, &vbo_);
+        vbo_ = 0;
+    }
     line_vertex_count_ = 0;
 }
 
@@ -180,9 +199,11 @@ void CollisionComponent::RenderWireframe(const MATH::Matrix4& proj,
         static_cast<GLint>(s_shader_->GetUniformID("modelMatrix")),
         1, GL_FALSE, static_cast<const float*>(model));
 
-    /** Green for sphere, yellow for AABB **/
+    /** Red when colliding, otherwise green for sphere / yellow for AABB **/
     const GLint colorLoc = static_cast<GLint>(s_shader_->GetUniformID("wireColor"));
-    if (type_ == Collider_type::SPHERE)
+    if (is_colliding_)
+        glUniform4f(colorLoc, 1.0f, 0.0f, 0.0f, 1.0f);
+    else if (type_ == Collider_type::SPHERE)
         glUniform4f(colorLoc, 0.0f, 1.0f, 0.2f, 1.0f);
     else
         glUniform4f(colorLoc, 1.0f, 0.85f, 0.0f, 1.0f);
