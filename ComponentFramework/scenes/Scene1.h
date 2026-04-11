@@ -58,7 +58,6 @@ private:
 
     /** Board **/
     Ref<Actor> board_;
-    Quaternion base_board_orientation_quaternion_;
 
     /** Light **/
     std::vector<Ref<LightActor>> point_lights_;

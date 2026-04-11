@@ -9,6 +9,7 @@
 #include "../MeshComponent.h"
 #include "../ShaderComponent.h"
 #include "../TransformComponent.h"
+#include <MMath.h>
 #include "../MemoryDiagnostics.h"
 #include "../systems/CollisionSystem.h"
 #include "../components/CollisionComponent.h"
@@ -87,26 +88,25 @@ bool Scene1::OnCreate()
     /** Top-down camera: positioned high above, looking straight down (-Y axis) **/
     camera_top_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera_top_->AddComponent<TransformComponent>(WeakRef<Component>(),
-        Vec3(0.0f, 40.0f, 0.0f),
-        QMath::angleAxisRotation(-90.0f, Vec3(1.0f, 0.0f, 0.0f)));
+                                                  Vec3(0.0f, 40.0f, 0.0f),
+                                                  QMath::angleAxisRotation(-90.0f, Vec3(1.0f, 0.0f, 0.0f)));
     camera_top_->OnCreate();
 
     /** Left-side camera: sits on the -X axis and looks toward +X (origin).
      *  Rotate Y by -90° so camera -Z points toward +X. **/
     camera_left_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera_left_->AddComponent<TransformComponent>(WeakRef<Component>(),
-        Vec3(-30.0f, 2.0f, 0.0f),
-        QMath::angleAxisRotation(-90.0f, Vec3(0.0f, 1.0f, 0.0f)));
+                                                   Vec3(-30.0f, 2.0f, 0.0f),
+                                                   QMath::angleAxisRotation(-90.0f, Vec3(0.0f, 1.0f, 0.0f)));
     camera_left_->OnCreate();
 
     /** Right-side camera: sits on the +X axis and looks toward -X (origin).
      *  Rotate Y by +90° so camera -Z points toward -X. **/
     camera_right_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
     camera_right_->AddComponent<TransformComponent>(WeakRef<Component>(),
-        Vec3(30.0f, 2.0f, 0.0f),
-        QMath::angleAxisRotation(90.0f, Vec3(0.0f, 1.0f, 0.0f)));
+                                                    Vec3(30.0f, 2.0f, 0.0f),
+                                                    QMath::angleAxisRotation(90.0f, Vec3(0.0f, 1.0f, 0.0f)));
     camera_right_->OnCreate();
-
 
 
     /** Create Board **/
@@ -118,8 +118,6 @@ bool Scene1::OnCreate()
                                              QMath::angleAxisRotation(
                                                  -90.0f, Vec3(1.0f, 0.0f, 0.0f)),
                                              Vec3(1.5f, 1.5f, 1.5f));
-    base_board_orientation_quaternion_ = QMath::angleAxisRotation(
-        -90.0f, Vec3(1.0f, 0.0f, 0.0f));
     board_->AddComponent<MaterialComponent>(WeakRef<Component>(), "textures/8x8_checkered_board.png");
     board_->OnCreate();
     board_->ListComponents();
@@ -192,9 +190,8 @@ bool Scene1::OnCreate()
     for (auto const& color : {"textures/White Chess Base Colour.png", "textures/Black Chess Base Colour.png"})
     {
         for (const auto chessPiece : {
-                 Chess_pieces::KING
-            //, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
-              //   Chess_pieces::KNIGHT
+                 Chess_pieces::KING, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
+                 Chess_pieces::KNIGHT
              })
         {
             for (const auto colPosition : GetColPositionListByPiece(chessPiece))
@@ -299,41 +296,6 @@ void Scene1::Update(float deltaTime)
             camera_free_->SetView(camera_free_->GetOrientation(), camera_free_->freeCameraMovement(displacement));
         }
     }
-
-    /** Rotate the Board using slerp because why not **/
-
-    static float totalTime = 0.0f;
-    totalTime += deltaTime;
-
-    Quaternion leftRotation = QMath::angleAxisRotation(-45.0f, Vec3(0.0f, 1.0f, 0.0f));
-    Quaternion rightRotation = QMath::angleAxisRotation(45.0f, Vec3(0.0f, 1.0f, 0.0f));
-
-    float speed = 1.0f;
-    float t = (sin(totalTime * speed) + 1.0f) / 2.0f;
-
-    Quaternion newRotation = QMath::slerp(leftRotation, rightRotation, t);
-
-    board_->GetComponent<TransformComponent>()->SetQuaternion(newRotation);
-
-    static float totalTimeSeconds = 0.0f;
-    totalTimeSeconds += deltaTime;
-
-    float animationSpeedMultiplier = 0.01f;
-    float interpolationParameter = (sin(totalTimeSeconds * animationSpeedMultiplier) + 1.0f) / 2.0f;
-
-    Quaternion leftOffsetRotationQuaternion =
-        QMath::angleAxisRotation(-90.0f, Vec3(0.0f, 1.0f, 0.0f));
-
-    Quaternion rightOffsetRotationQuaternion =
-        QMath::angleAxisRotation(90.0f, Vec3(0.0f, 1.0f, 0.0f));
-
-    Quaternion animatedOffsetRotationQuaternion =
-        QMath::slerp(leftOffsetRotationQuaternion, rightOffsetRotationQuaternion, interpolationParameter);
-
-    Quaternion finalBoardOrientationQuaternion =
-        animatedOffsetRotationQuaternion * base_board_orientation_quaternion_;
-
-    board_->GetComponent<TransformComponent>()->SetQuaternion(finalBoardOrientationQuaternion);
 
     /** Moving Lights up and down just to look at them go **/
     UpdateFireworks(deltaTime);
@@ -508,7 +470,8 @@ void Scene1::Render() const
     glUseProgram(shader->GetProgram());
     glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("projectionMatrix")), 1, GL_FALSE,
                        activeCamera->GetProjectionMatrix());
-    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE, activeCamera->GetViewMatrix());
+    glUniformMatrix4fv(static_cast<GLint>(shader->GetUniformID("viewMatrix")), 1, GL_FALSE,
+                       activeCamera->GetViewMatrix());
     glUniform4fv(static_cast<GLint>(shader->GetUniformID("ambientLightColor")), 1,
                  Vec4(1.0f, 0.0f, 0.5f, 0.0f));
 
@@ -769,7 +732,14 @@ void Scene1::LaunchPiece(const Ref<Actor>& actor) const
         }
         physics->OnCreate();
     }
-    physics->velocity_ = Vec3(0.0f, 5.0f, 0.0f);
+
+    /** Determine launch direction from board-side.
+     *  White pieces occupy negative local-Y rows → world +Z side → launch toward -Z.
+     *  Black pieces occupy positive local-Y rows → world -Z side → launch toward +Z. **/
+    const Ref<TransformComponent> tc = actor->GetComponent<TransformComponent>();
+    const float localY = tc ? tc->GetPosition().y : 0.0f;
+    const float zDir = (localY < 0.0f) ? -1.0f : 1.0f;
+    physics->velocity_ = Vec3(0.0f, 0.0f, zDir * 5.0f);
 }
 
 void Scene1::UpdatePhysics(const float deltaTime)
@@ -785,7 +755,11 @@ void Scene1::UpdatePhysics(const float deltaTime)
         const Ref<TransformComponent> transform = piece->GetComponent<TransformComponent>();
         if (!transform) continue;
 
-        transform->SetPosition(transform->GetPosition() + velocity * deltaTime);
+        /** If the piece has a parent, velocity is in world space but position is local —
+         *  bring the velocity into the parent's local space before integrating. **/
+        const Matrix4 parentMatrix = piece->GetParentModelMatrix();
+        const Vec3 localVelocity = Vec3(MMath::inverse(parentMatrix) * Vec4(velocity, 0.0f));
+        transform->SetPosition(transform->GetPosition() + localVelocity * deltaTime);
     }
 
     /** Run collision detection and response for all registered actors **/
@@ -816,7 +790,7 @@ void Scene1::GenerateSphereCollisions()
 
     for (const Ref<Actor>& piece : chess_piece_actors_)
     {
-        constexpr float kMeshRadius = 1.0f;
+        constexpr float kMeshRadius = 0.5f;
         piece->AddComponent<CollisionComponent>(WeakRef<Component>(), kMeshRadius);
         if (const Ref<CollisionComponent> collisionComponent = piece->GetComponent<CollisionComponent>())
         {
@@ -842,7 +816,7 @@ void Scene1::GenerateSphereCollisions()
             if (tc) pc->SetTransform(tc->GetPosition(), tc->GetQuaternion(), tc->GetScale());
             pc->OnCreate();
         }
-        
+
         collision_system_.AddActor(piece);
     }
 }
@@ -855,7 +829,7 @@ void Scene1::GenerateAABBCollisions()
     {
         /** Hardcoded values for dimensions **/
         constexpr float kHalfW = 0.5f;
-        constexpr float kHalfH = 1.0f;
+        constexpr float kHalfH = 1.2f;
         constexpr float kHalfD = 0.5f;
 
         AABB box;
@@ -896,11 +870,11 @@ CameraActor* Scene1::GetActiveCamera() const
 {
     switch (camera_mode_)
     {
-    case Camera_mode::TOP:   return camera_top_.get();
-    case Camera_mode::LEFT:  return camera_left_.get();
+    case Camera_mode::TOP: return camera_top_.get();
+    case Camera_mode::LEFT: return camera_left_.get();
     case Camera_mode::RIGHT: return camera_right_.get();
     case Camera_mode::FREE:
-    default:                 return camera_free_.get();
+    default: return camera_free_.get();
     }
 }
 
@@ -923,9 +897,9 @@ void Scene1::RenderImGui()
         const bool isActive = (camera_mode_ == mode);
         if (isActive)
         {
-            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.26f, 0.59f, 0.98f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.59f, 0.98f, 1.00f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.40f, 0.70f, 1.00f, 1.00f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.20f, 0.50f, 0.90f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.50f, 0.90f, 1.00f));
         }
         if (ImGui::Button(label, ImVec2(60.0f, 0.0f)))
             camera_mode_ = mode;
@@ -933,11 +907,11 @@ void Scene1::RenderImGui()
             ImGui::PopStyleColor(3);
     };
 
-    cameraButton("Free",  Camera_mode::FREE);
+    cameraButton("Free", Camera_mode::FREE);
     ImGui::SameLine();
-    cameraButton("Top",   Camera_mode::TOP);
+    cameraButton("Top", Camera_mode::TOP);
     ImGui::SameLine();
-    cameraButton("Left",  Camera_mode::LEFT);
+    cameraButton("Left", Camera_mode::LEFT);
     ImGui::SameLine();
     cameraButton("Right", Camera_mode::RIGHT);
 

@@ -90,5 +90,6 @@ public:
 
     void ListComponents() const;
     MATH::Matrix4 GetModelMatrix();
+    MATH::Matrix4 GetParentModelMatrix();
     void RemoveAllComponents();
 };

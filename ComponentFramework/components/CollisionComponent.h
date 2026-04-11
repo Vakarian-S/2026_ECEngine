@@ -87,6 +87,7 @@ public:
 
     /** Set the actor's uniform scale so the wireframe compensates for it. Must be called before OnCreate(). **/
     void SetActorScale(float scale) { actor_scale_ = scale; }
+    [[nodiscard]] float GetActorScale() const { return actor_scale_; }
 
     void SetColliding(bool colliding) { is_colliding_ = colliding; }
     [[nodiscard]] bool IsColliding() const { return is_colliding_; }

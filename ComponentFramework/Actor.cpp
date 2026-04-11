@@ -81,3 +81,13 @@ Matrix4 Actor::GetModelMatrix()
     }
     return modelMatrix;
 }
+
+Matrix4 Actor::GetParentModelMatrix()
+{
+    if (const auto parentPtr = parent.lock())
+    {
+        if (Actor* parentActor = dynamic_cast<Actor*>(parentPtr.get()))
+            return parentActor->GetModelMatrix();
+    }
+    return Matrix4();
+}

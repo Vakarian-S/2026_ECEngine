@@ -147,43 +147,83 @@ void CollisionSystem::Update(const float /*deltaTime*/)
         const Ref<Actor>& actorA = colliding_actors_[i];
         const Ref<CollisionComponent> ccA = actorA->GetComponent<CollisionComponent>();
         const Ref<PhysicsComponent> pcA = actorA->GetComponent<PhysicsComponent>();
-        const Ref<TransformComponent> tcA = actorA->GetComponent<TransformComponent>();
-        if (!ccA || !pcA || !tcA) continue;
+        if (!ccA || !pcA) continue;
 
-        const MATH::Vec3 posA = tcA->GetPosition();
+        /** Full world matrix — identical to what the wireframe renderer uses **/
+        const MATH::Matrix4 worldMatA = actorA->GetModelMatrix();
 
         for (size_t j = i + 1; j < count; ++j)
         {
             const Ref<Actor>& actorB = colliding_actors_[j];
             const Ref<CollisionComponent> ccB = actorB->GetComponent<CollisionComponent>();
             const Ref<PhysicsComponent> pcB = actorB->GetComponent<PhysicsComponent>();
-            const Ref<TransformComponent> tcB = actorB->GetComponent<TransformComponent>();
-            if (!ccB || !pcB || !tcB) continue;
+            if (!ccB || !pcB) continue;
 
-            const MATH::Vec3 posB = tcB->GetPosition();
+            const MATH::Matrix4 worldMatB = actorB->GetModelMatrix();
             const Collider_type typeA = ccA->GetType();
             const Collider_type typeB = ccB->GetType();
 
-
             if (typeA == Collider_type::SPHERE && typeB == Collider_type::SPHERE)
             {
-                /** World-space spheres: actor position + local offset **/
-                const Sphere sA{ccA->GetRadius(), posA + ccA->GetLocalOffset()};
-                const Sphere sB{ccB->GetRadius(), posB + ccB->GetLocalOffset()};
+                const float sA = ccA->GetActorScale();
+                const float sB = ccB->GetActorScale();
 
+                /** Center: the wireframe geometry stores (localOffset / actorScale) in mesh space.
+                 *  Transforming that point by the world matrix yields the world-space center. **/
+                const MATH::Vec3 centerA = MATH::Vec3(worldMatA * MATH::Vec4(ccA->GetLocalOffset() * (1.0f / sA), 1.0f));
+                const MATH::Vec3 centerB = MATH::Vec3(worldMatB * MATH::Vec4(ccB->GetLocalOffset() * (1.0f / sB), 1.0f));
 
-                if (CollisionDetection(sA, sB))
+                /** Radius: (radius / actorScale) as a direction vector — world matrix applies all
+                 *  ancestor scales, then magnitude gives the true world-space radius. **/
+                const float rA = MATH::VMath::mag(MATH::Vec3(worldMatA * MATH::Vec4(ccA->GetRadius() / sA, 0.0f, 0.0f, 0.0f)));
+                const float rB = MATH::VMath::mag(MATH::Vec3(worldMatB * MATH::Vec4(ccB->GetRadius() / sB, 0.0f, 0.0f, 0.0f)));
+
+                const Sphere sphA{rA, centerA};
+                const Sphere sphB{rB, centerB};
+
+                if (CollisionDetection(sphA, sphB))
                 {
                     ccA->SetColliding(true);
                     ccB->SetColliding(true);
-                    SphereSphereCollisionResponse(sA, pcA, sB, pcB);
+                    SphereSphereCollisionResponse(sphA, pcA, sphB, pcB);
                 }
             }
             else if (typeA == Collider_type::AABB && typeB == Collider_type::AABB)
             {
-                /** World-space AABBs: actor position + local offset + aabb local center **/
-                const AABB wA{posA + ccA->GetLocalOffset() + ccA->GetAABB().center, ccA->GetAABB().halfExtents};
-                const AABB wB{posB + ccB->GetLocalOffset() + ccB->GetAABB().center, ccB->GetAABB().halfExtents};
+                const float sA = ccA->GetActorScale();
+                const float sB = ccB->GetActorScale();
+
+                /** World-space center: (localOffset + aabb.center) / actorScale is the mesh-space
+                 *  center used by the wireframe — transform it by the world matrix. **/
+                const MATH::Vec3 wCenterA = MATH::Vec3(worldMatA * MATH::Vec4(
+                    (ccA->GetLocalOffset() + ccA->GetAABB().center) * (1.0f / sA), 1.0f));
+                const MATH::Vec3 wCenterB = MATH::Vec3(worldMatB * MATH::Vec4(
+                    (ccB->GetLocalOffset() + ccB->GetAABB().center) * (1.0f / sB), 1.0f));
+
+                /** World-space half extents: project each local half-axis through the world matrix
+                 *  (OBB -> world AABB) so the result matches the rendered wireframe exactly. **/
+                const MATH::Vec3 hA = ccA->GetAABB().halfExtents * (1.0f / sA);
+                const MATH::Vec3 hAxW = MATH::Vec3(worldMatA * MATH::Vec4(hA.x, 0.0f, 0.0f, 0.0f));
+                const MATH::Vec3 hAyW = MATH::Vec3(worldMatA * MATH::Vec4(0.0f, hA.y, 0.0f, 0.0f));
+                const MATH::Vec3 hAzW = MATH::Vec3(worldMatA * MATH::Vec4(0.0f, 0.0f, hA.z, 0.0f));
+                const MATH::Vec3 wHalfA(
+                    std::abs(hAxW.x) + std::abs(hAyW.x) + std::abs(hAzW.x),
+                    std::abs(hAxW.y) + std::abs(hAyW.y) + std::abs(hAzW.y),
+                    std::abs(hAxW.z) + std::abs(hAyW.z) + std::abs(hAzW.z)
+                );
+
+                const MATH::Vec3 hB = ccB->GetAABB().halfExtents * (1.0f / sB);
+                const MATH::Vec3 hBxW = MATH::Vec3(worldMatB * MATH::Vec4(hB.x, 0.0f, 0.0f, 0.0f));
+                const MATH::Vec3 hByW = MATH::Vec3(worldMatB * MATH::Vec4(0.0f, hB.y, 0.0f, 0.0f));
+                const MATH::Vec3 hBzW = MATH::Vec3(worldMatB * MATH::Vec4(0.0f, 0.0f, hB.z, 0.0f));
+                const MATH::Vec3 wHalfB(
+                    std::abs(hBxW.x) + std::abs(hByW.x) + std::abs(hBzW.x),
+                    std::abs(hBxW.y) + std::abs(hByW.y) + std::abs(hBzW.y),
+                    std::abs(hBxW.z) + std::abs(hByW.z) + std::abs(hBzW.z)
+                );
+
+                const AABB wA{wCenterA, wHalfA};
+                const AABB wB{wCenterB, wHalfB};
 
                 if (CollisionDetection(wA, wB))
                 {
