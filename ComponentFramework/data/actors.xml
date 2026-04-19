@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Data>
+    <Assets>
+        <Mesh filename="meshes/Bishop.obj" name="Bishop"/>
+        <Mesh filename="meshes/King.obj" name="King"/>
+        <Mesh filename="meshes/Knight.obj" name="Knight"/>
+        <Mesh filename="meshes/Pawn.obj" name="Pawn"/>
+        <Mesh filename="meshes/Queen.obj" name="Queen"/>
+        <Mesh filename="meshes/Rook.obj" name="Rook"/>
+        <Shader filenameVert="shaders/texturePhongVert.glsl" filenameFrag="shaders/texturePhongFrag.glsl" name="Default"/>
+        <Texture filename="textures/White Chess Base Colour.png" name="WhitePiece"/>
+        <Texture filename="textures/Black Chess Base Colour.png" name="BlackPiece"/>
+    </Assets>
+    <Actors>
+        <Actor>
+            <Mesh name="Pawn"/>
+            <Shader name="Default"/>
+            <Transform x="" y="" z=""/>
+            <Texture name="WhitePiece"/>
+        </Actor>
+    </Actors>
+</Data>
