@@ -62,7 +62,7 @@ static void AABBAABBCollisionResponse(
     const float v1P = MATH::VMath::dot(v1, n);
     const float v2P = MATH::VMath::dot(v2, n);
 
-    if (v1P - v2P > 0.0f) return; // already separating
+    if (v1P - v2P > 0.0f) return;
     if (m1 == 0.0f && m2 == 0.0f) return;
 
     if (m1 == 0.0f)
@@ -126,10 +126,6 @@ void CollisionSystem::SphereSphereCollisionResponse(Sphere s1, Ref<PhysicsCompon
     pc2->velocity_ = v2 + (v2p_new - v2P) * n;
 }
 
-// ---------------------------------------------------------------------------
-// Update — O(n²) broad+narrow phase over all registered actor pairs
-// ---------------------------------------------------------------------------
-
 void CollisionSystem::Update(const float /*deltaTime*/)
 {
     const size_t count = colliding_actors_.size();
@@ -170,8 +166,8 @@ void CollisionSystem::Update(const float /*deltaTime*/)
 
                 /** Center: the wireframe geometry stores (localOffset / actorScale) in mesh space.
                  *  Transforming that point by the world matrix yields the world-space center. **/
-                const MATH::Vec3 centerA = MATH::Vec3(worldMatA * MATH::Vec4(ccA->GetLocalOffset() * (1.0f / sA), 1.0f));
-                const MATH::Vec3 centerB = MATH::Vec3(worldMatB * MATH::Vec4(ccB->GetLocalOffset() * (1.0f / sB), 1.0f));
+                const auto centerA = MATH::Vec3(worldMatA * MATH::Vec4(ccA->GetLocalOffset() * (1.0f / sA), 1.0f));
+                const auto centerB = MATH::Vec3(worldMatB * MATH::Vec4(ccB->GetLocalOffset() * (1.0f / sB), 1.0f));
 
                 /** Radius: (radius / actorScale) as a direction vector — world matrix applies all
                  *  ancestor scales, then magnitude gives the true world-space radius. **/
@@ -195,17 +191,17 @@ void CollisionSystem::Update(const float /*deltaTime*/)
 
                 /** World-space center: (localOffset + aabb.center) / actorScale is the mesh-space
                  *  center used by the wireframe — transform it by the world matrix. **/
-                const MATH::Vec3 wCenterA = MATH::Vec3(worldMatA * MATH::Vec4(
+                const auto wCenterA = MATH::Vec3(worldMatA * MATH::Vec4(
                     (ccA->GetLocalOffset() + ccA->GetAABB().center) * (1.0f / sA), 1.0f));
-                const MATH::Vec3 wCenterB = MATH::Vec3(worldMatB * MATH::Vec4(
+                const auto wCenterB = MATH::Vec3(worldMatB * MATH::Vec4(
                     (ccB->GetLocalOffset() + ccB->GetAABB().center) * (1.0f / sB), 1.0f));
 
                 /** World-space half extents: project each local half-axis through the world matrix
                  *  (OBB -> world AABB) so the result matches the rendered wireframe exactly. **/
                 const MATH::Vec3 hA = ccA->GetAABB().halfExtents * (1.0f / sA);
-                const MATH::Vec3 hAxW = MATH::Vec3(worldMatA * MATH::Vec4(hA.x, 0.0f, 0.0f, 0.0f));
-                const MATH::Vec3 hAyW = MATH::Vec3(worldMatA * MATH::Vec4(0.0f, hA.y, 0.0f, 0.0f));
-                const MATH::Vec3 hAzW = MATH::Vec3(worldMatA * MATH::Vec4(0.0f, 0.0f, hA.z, 0.0f));
+                const auto hAxW = MATH::Vec3(worldMatA * MATH::Vec4(hA.x, 0.0f, 0.0f, 0.0f));
+                const auto hAyW = MATH::Vec3(worldMatA * MATH::Vec4(0.0f, hA.y, 0.0f, 0.0f));
+                const auto hAzW = MATH::Vec3(worldMatA * MATH::Vec4(0.0f, 0.0f, hA.z, 0.0f));
                 const MATH::Vec3 wHalfA(
                     std::abs(hAxW.x) + std::abs(hAyW.x) + std::abs(hAzW.x),
                     std::abs(hAxW.y) + std::abs(hAyW.y) + std::abs(hAzW.y),
@@ -213,9 +209,9 @@ void CollisionSystem::Update(const float /*deltaTime*/)
                 );
 
                 const MATH::Vec3 hB = ccB->GetAABB().halfExtents * (1.0f / sB);
-                const MATH::Vec3 hBxW = MATH::Vec3(worldMatB * MATH::Vec4(hB.x, 0.0f, 0.0f, 0.0f));
-                const MATH::Vec3 hByW = MATH::Vec3(worldMatB * MATH::Vec4(0.0f, hB.y, 0.0f, 0.0f));
-                const MATH::Vec3 hBzW = MATH::Vec3(worldMatB * MATH::Vec4(0.0f, 0.0f, hB.z, 0.0f));
+                const auto hBxW = MATH::Vec3(worldMatB * MATH::Vec4(hB.x, 0.0f, 0.0f, 0.0f));
+                const auto hByW = MATH::Vec3(worldMatB * MATH::Vec4(0.0f, hB.y, 0.0f, 0.0f));
+                const auto hBzW = MATH::Vec3(worldMatB * MATH::Vec4(0.0f, 0.0f, hB.z, 0.0f));
                 const MATH::Vec3 wHalfB(
                     std::abs(hBxW.x) + std::abs(hByW.x) + std::abs(hBzW.x),
                     std::abs(hBxW.y) + std::abs(hByW.y) + std::abs(hBzW.y),
