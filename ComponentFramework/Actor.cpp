@@ -60,7 +60,7 @@ void Actor::ListComponents() const
     std::cout << typeid(*this).name() << " contains the following components:\n";
     for (auto component : components)
     {
-        std::cout << typeid(*component).name() << std::endl;
+        std::cout << typeid(*component).name() << ": " << component << std::endl;
     }
     std::cout << '\n';
 }

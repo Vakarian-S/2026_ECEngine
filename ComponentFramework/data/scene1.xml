@@ -7,16 +7,83 @@
         <Mesh filename="meshes/Pawn.obj" name="Pawn"/>
         <Mesh filename="meshes/Queen.obj" name="Queen"/>
         <Mesh filename="meshes/Rook.obj" name="Rook"/>
-        <Shader filenameVert="shaders/texturePhongVert.glsl" filenameFrag="shaders/texturePhongFrag.glsl" name="Default"/>
+        <Shader filenameVert="shaders/texturePhongVert.glsl" filenameFrag="shaders/texturePhongFrag.glsl"
+                name="Default"/>
         <Texture filename="textures/White Chess Base Colour.png" name="WhitePiece"/>
         <Texture filename="textures/Black Chess Base Colour.png" name="BlackPiece"/>
     </Assets>
     <Actors>
         <Actor>
+            <Mesh name="Rook"/>
+            <Shader name="Default"/>
+            <Texture name="WhitePiece"/>
+            <ChessData color="white"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Bishop"/>
+            <Shader name="Default"/>
+            <Texture name="WhitePiece"/>
+            <ChessData color="white"/>
+        </Actor>
+        <Actor>
+            <Mesh name="King"/>
+            <Shader name="Default"/>
+            <Texture name="WhitePiece"/>
+            <ChessData color="white"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Knight"/>
+            <Shader name="Default"/>
+            <Texture name="WhitePiece"/>
+            <ChessData color="white"/>
+        </Actor>
+        <Actor>
             <Mesh name="Pawn"/>
             <Shader name="Default"/>
-            <Transform x="" y="" z=""/>
             <Texture name="WhitePiece"/>
+            <ChessData color="white"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Queen"/>
+            <Shader name="Default"/>
+            <Texture name="WhitePiece"/>
+            <ChessData color="white"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Rook"/>
+            <Shader name="Default"/>
+            <Texture name="BlackPiece"/>
+            <ChessData color="black"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Bishop"/>
+            <Shader name="Default"/>
+            <Texture name="BlackPiece"/>
+            <ChessData color="black"/>
+        </Actor>
+        <Actor>
+            <Mesh name="King"/>
+            <Shader name="Default"/>
+            <Texture name="BlackPiece"/>
+            <ChessData color="black"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Knight"/>
+            <Shader name="Default"/>
+            <Texture name="BlackPiece"/>
+            <ChessData color="black"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Pawn"/>
+            <Shader name="Default"/>
+            <Texture name="BlackPiece"/>
+            <ChessData color="black"/>
+        </Actor>
+        <Actor>
+            <Mesh name="Queen"/>
+            <Shader name="Default"/>
+            <Texture name="BlackPiece"/>
+            <ChessData color="black"/>
         </Actor>
     </Actors>
 </Data>

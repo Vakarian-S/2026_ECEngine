@@ -210,8 +210,7 @@ bool Scene1::OnCreate()
                 auto actor = std::make_shared<Actor>(board_);
                 Ref<MeshComponent> mesh = chess_piece_meshes_[chessPiece];
                 actor->AddComponent<MeshComponent>(chess_piece_meshes_[chessPiece]);
-                actor->AddComponent<ShaderComponent>(WeakRef<Component>(), "shaders/texturePhongVert.glsl",
-                                                     "shaders/texturePhongFrag.glsl");
+                actor->AddComponent<ShaderComponent>(asset_manager_->GetComponent<ShaderComponent>("shader_Default"));
                 auto rotationByColor = index
                                            ? QMath::angleAxisRotation(
                                                90.0f, Vec3(1.0f, 0.0f, 0.0f))
