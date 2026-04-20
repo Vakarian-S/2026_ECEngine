@@ -4,6 +4,25 @@
 #include "Component.h"
 #include "Debug.h"
 
+enum class Asset_type : uint8_t
+{
+    MESH = 0,
+    SHADER,
+    TEXTURE
+};
+
+static const char* asset_prefix(Asset_type type)
+{
+    switch (type)
+    {
+    case Asset_type::MESH: return "mesh_";
+    case Asset_type::SHADER: return "shader_";
+    case Asset_type::TEXTURE: return "texture_";
+    }
+    return "";
+}
+
+
 class AssetManager
 {
 private:
@@ -11,7 +30,7 @@ private:
       Prevents external instantiation */
     AssetManager() = default;
 
-    std::unordered_map<const char*, Ref<Component>> component_catalog_;
+    std::unordered_map<std::string, Ref<Component>> component_catalog_;
 
 public:
     /** Singleton disabled operations **/
@@ -29,7 +48,7 @@ public:
     /** Singleton accessor (Meyers Singleton). **/
     static AssetManager& GetInstance();
 
-    bool ReadManifest(const char* filename);
+    bool ReadManifest(const char* manifsetFilename);
 
 
     template <typename ComponentTemplate, typename... Args>
@@ -52,4 +71,8 @@ public:
 #endif
         return std::dynamic_pointer_cast<ComponentTemplate>(id->second);
     }
+    
+    /** Prints all the components from the manager **/;
+    void ListComponents();
+    
 };

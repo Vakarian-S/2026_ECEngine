@@ -81,8 +81,8 @@ Vec3 Scene1::GetRelativeTransformOnBoard(const int row, const int col)
 bool Scene1::OnCreate()
 {
     /** Create Asset Manager Singleton **/
-    auto noDelete = [](AssetManager*) {};
-    asset_manager_ = std::shared_ptr<AssetManager>(&AssetManager::GetInstance(), noDelete);
+    auto no_delete = [](AssetManager*) {};
+    asset_manager_ = std::shared_ptr<AssetManager>(&AssetManager::GetInstance(), no_delete);
     
     if (!LoadAssetsIntoManager("data/scene1.xml"))
     {
