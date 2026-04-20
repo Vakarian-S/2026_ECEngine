@@ -1,4 +1,8 @@
 ﻿#pragma once
+#include <unordered_map>
+
+#include "Component.h"
+#include "Debug.h"
 
 class AssetManager
 {
@@ -6,6 +10,8 @@ private:
     /* Private default constructor.
       Prevents external instantiation */
     AssetManager() = default;
+
+    std::unordered_map<const char*, Ref<Component>> component_catalog_;
 
 public:
     /** Singleton disabled operations **/
@@ -17,10 +23,33 @@ public:
     AssetManager& operator=(const AssetManager&) = delete;
     /** Prevents move-based reassignment and enforces controlled lifetime **/
     AssetManager& operator=(AssetManager&&) = delete;
-    
+
     ~AssetManager();
-    
+
     /** Singleton accessor (Meyers Singleton). **/
-    static AssetManager& GetInstance();    
+    static AssetManager& GetInstance();
     
+    void ReadManifest();
+
+
+    template <typename ComponentTemplate, typename... Args>
+    void AddComponent(const char* name, Args&&... args_)
+    {
+        Ref<ComponentTemplate> t = std::make_shared<ComponentTemplate>(std::forward<Args>(args_)...);
+        component_catalog_[name] = t;
+    }
+
+    template <typename ComponentTemplate>
+    Ref<ComponentTemplate> GetComponent(const char* name) const
+    {
+        auto id = component_catalog_.find(name);
+#ifdef _DEBUG
+        if (id == component_catalog_.end())
+        {
+            Debug::Error("Can't find requested component", __FILE__, __LINE__);
+            return Ref<ComponentTemplate>(nullptr);
+        }
+#endif
+        return std::dynamic_pointer_cast<ComponentTemplate>(id->second);
+    }
 };

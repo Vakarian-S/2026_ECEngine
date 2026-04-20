@@ -12,6 +12,8 @@
 #include "../components/PhysicsComponent.h"
 #include "../systems/CollisionSystem.h"
 
+class AssetManager;
+
 enum class Chess_pieces: uint8_t
 {
     PAWN = 0,
@@ -31,6 +33,9 @@ enum class Check_context : uint8_t
 class Scene1 : public Scene
 {
 private:
+    /** Asset Manager Singleton **/
+    std::shared_ptr<AssetManager> asset_manager_;  // non-owning handle
+
     /** Camera view modes **/
     enum class Camera_mode : uint8_t { FREE = 0, TOP, LEFT, RIGHT };
 
@@ -163,6 +168,9 @@ private:
      */
     void RenderImGui();
     void RenderCollisionWireframes() const;
+    
+    /** Load Asset onto the singleton **/
+    bool LoadAssetsIntoManager(char*);
 
 public:
     Scene1();

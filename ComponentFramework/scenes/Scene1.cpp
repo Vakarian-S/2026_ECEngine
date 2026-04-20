@@ -18,6 +18,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
+#include "../AssetManager.h"
 
 
 Scene1::Scene1() : camera_free_(nullptr), camera_top_(nullptr), camera_left_(nullptr), camera_right_(nullptr)
@@ -79,6 +80,10 @@ Vec3 Scene1::GetRelativeTransformOnBoard(const int row, const int col)
 
 bool Scene1::OnCreate()
 {
+    /** Create Asset Manager Singleton **/
+    auto noDelete = [](AssetManager*) {};
+    asset_manager_ = std::shared_ptr<AssetManager>(&AssetManager::GetInstance(), noDelete);
+    
     /** Setup Cameras **/
     /** Free / movable camera **/
     camera_free_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
@@ -1013,4 +1018,10 @@ void Scene1::RenderCollisionWireframes() const
         const MATH::Matrix4 model = piece->GetModelMatrix();
         collisionComponent->RenderWireframe(proj, view, model);
     }
+}
+
+bool Scene1::LoadAssetsIntoManager(char* filename)
+{
+    
+    return true;
 }

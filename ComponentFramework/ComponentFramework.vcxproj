@@ -162,6 +162,7 @@
         <ClCompile Include="ShaderComponent.cpp"/>
         <ClCompile Include="systems\CollisionSystem.cpp"/>
         <ClCompile Include="Timer.cpp"/>
+        <ClCompile Include="tinyxml\tinyxml2.cpp"/>
         <ClCompile Include="TransformComponent.cpp"/>
         <ClCompile Include="Window.cpp"/>
     </ItemGroup>
@@ -210,7 +211,10 @@
         <None Include="shaders\wireframeVert.glsl"/>
     </ItemGroup>
     <ItemGroup>
-      <Content Include="data\actors.xml" />
+      <Content Include="data\scene1.xml" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="tinyxml\" />
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">
