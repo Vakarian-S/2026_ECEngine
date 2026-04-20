@@ -57,7 +57,10 @@ bool SceneManager::Initialize(std::string name_, int width_, int height_) {
 	InitImGui();
 
 	/********************************   Default first scene   ***********************/
-	BuildNewScene(SCENE_NUMBER::SCENE1);
+	if (!BuildNewScene(SCENE_NUMBER::SCENE1)) {
+		Debug::FatalError("Failed to build initial scene", __FILE__, __LINE__);
+		return false;
+	}
 	/********************************************************************************/
 	return true;
 }
@@ -68,6 +71,10 @@ void SceneManager::Run() {
 	isRunning = true;
 	while (isRunning) {
 		HandleEvents();
+		if (!currentScene) {
+			Debug::FatalError("currentScene is null during Run", __FILE__, __LINE__);
+			break;
+		}
 		timer->UpdateFrameTicks();
 		currentScene->Update(timer->GetDeltaTime());
 		currentScene->Render();
@@ -131,8 +138,8 @@ bool SceneManager::BuildNewScene(SCENE_NUMBER scene) {
 
 	switch (scene) {
 	case SCENE_NUMBER::SCENE0g:
-		status = currentScene->OnCreate();
-		break;
+		Debug::Error("SCENE0g has no implementation", __FILE__, __LINE__);
+		return false;
 	
 
 	case SCENE_NUMBER::SCENE1:
@@ -145,7 +152,7 @@ bool SceneManager::BuildNewScene(SCENE_NUMBER scene) {
 		currentScene = nullptr;
 		return false;
 	}
-	return true;
+	return status;
 }
 
 void SceneManager::InitImGui()

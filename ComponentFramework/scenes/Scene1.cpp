@@ -84,6 +84,12 @@ bool Scene1::OnCreate()
     auto noDelete = [](AssetManager*) {};
     asset_manager_ = std::shared_ptr<AssetManager>(&AssetManager::GetInstance(), noDelete);
     
+    if (!LoadAssetsIntoManager("data/scene1.xml"))
+    {
+        std::cout << "Failed to load assets from scene1.xml" << '\n';
+        return false;
+    }
+    
     /** Setup Cameras **/
     /** Free / movable camera **/
     camera_free_ = std::make_unique<CameraActor>(WeakRef<Component>(), 45.0f, 16.0f / 9.0f, 0.5f, 1000.0f);
@@ -1020,8 +1026,7 @@ void Scene1::RenderCollisionWireframes() const
     }
 }
 
-bool Scene1::LoadAssetsIntoManager(char* filename)
+bool Scene1::LoadAssetsIntoManager(const char* filename)
 {
-    
-    return true;
+    return asset_manager_->ReadManifest(filename);
 }

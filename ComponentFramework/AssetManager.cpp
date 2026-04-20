@@ -26,7 +26,7 @@ AssetManager& AssetManager::GetInstance()
     return instance;
 }
 
-void AssetManager::ReadManifest()
+bool AssetManager::ReadManifest(const char* filename)
 {
     std::cout << "ReadManifest\n";
     Color4 diffuse;
@@ -35,7 +35,7 @@ void AssetManager::ReadManifest()
     if (doc.Error())
     {
         std::cout << tinyxml2::XMLDocument::ErrorIDToName(doc.ErrorID()) << std::endl;
-        return;
+        return false;
     }
     /// Jump to the first node or "root"
     XMLElement* rootData = doc.RootElement();

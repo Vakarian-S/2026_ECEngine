@@ -170,7 +170,7 @@ private:
     void RenderCollisionWireframes() const;
     
     /** Load Asset onto the singleton **/
-    bool LoadAssetsIntoManager(char*);
+    bool LoadAssetsIntoManager(const char*);
 
 public:
     Scene1();

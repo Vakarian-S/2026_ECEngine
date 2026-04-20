@@ -28,8 +28,8 @@ public:
 
     /** Singleton accessor (Meyers Singleton). **/
     static AssetManager& GetInstance();
-    
-    void ReadManifest();
+
+    bool ReadManifest(const char* filename);
 
 
     template <typename ComponentTemplate, typename... Args>
