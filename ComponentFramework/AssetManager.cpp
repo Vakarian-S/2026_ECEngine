@@ -3,16 +3,22 @@
 using namespace tinyxml2;
 
 
-struct Vec3 {
+struct Vec3
+{
     float x, y, z;
-    void print() {
+
+    void print()
+    {
         printf("%f %f %f\n", x, y, z);
     }
 };
 
-struct Color4 {
+struct Color4
+{
     float red, green, blue, alpha;
-    void print() {
+
+    void print()
+    {
         printf("%f %f %f %f\n", red, green, blue, alpha);
     }
 };
@@ -31,7 +37,7 @@ bool AssetManager::ReadManifest(const char* filename)
     std::cout << "ReadManifest\n";
     Color4 diffuse;
     XMLDocument doc;
-    doc.LoadFile("Assets.xml");
+    doc.LoadFile(filename);
     if (doc.Error())
     {
         std::cout << tinyxml2::XMLDocument::ErrorIDToName(doc.ErrorID()) << std::endl;
@@ -46,6 +52,32 @@ bool AssetManager::ReadManifest(const char* filename)
         /// Print the name of the element
         std::cout << "Element [" << e->Value() << "]: ";
 
+        /** Read Assets First **/
+        if (std::string_view(e->Value()) == "Assets")
+        {
+            std::cout << "Assets Found\n";
+            for (XMLElement* assetElement = e->FirstChildElement(); assetElement != nullptr; assetElement = assetElement->NextSiblingElement())
+            {
+                std::cout << "Element [" << assetElement->Name() << ": " << assetElement->Value() << "] ";
+                
+                if (std::string_view(assetElement->Name()) == "Mesh")
+                {
+                    continue;
+                }
+                
+                if (std::string_view(assetElement->Name()) == "Shader")
+                {
+                    continue;
+                }
+                
+                if (std::string_view(assetElement->Name()) == "Texture")
+                {
+                    continue;
+                }
+                
+                
+            }
+        }
         /// If there is text within the element (not null), print it
         if (e->GetText() != nullptr)
         {
