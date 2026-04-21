@@ -42,15 +42,9 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
         std::cout << tinyxml2::XMLDocument::ErrorIDToName(doc.ErrorID()) << std::endl;
         return false;
     }
-    /// Jump to the first node or "root"
     XMLElement* rootData = doc.RootElement();
-
-    /// Loop over all the elements under the first node
     for (XMLElement* e = rootData->FirstChildElement(); e != nullptr; e = e->NextSiblingElement())
     {
-        /// Print the name of the element
-        std::cout << "Element [" << e->Value() << "]: ";
-
         /** Read Assets First **/
         if (std::string_view(e->Value()) == "Assets")
         {
@@ -58,16 +52,12 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
             for (XMLElement* assetElement = e->FirstChildElement(); assetElement != nullptr; assetElement = assetElement
                  ->NextSiblingElement())
             {
-                std::cout << "Element [" << assetElement->Name() << ": " << assetElement->Value() << "] ";
-
                 if (std::string_view(assetElement->Name()) == "Mesh")
                 {
                     const char* name = assetElement->Attribute("name");
                     const char* filename = assetElement->Attribute("filename");
                     std::string key = std::string(asset_prefix(Asset_type::MESH)) + name;
-                    std::cout << "Name: " << name << '\n';
-                    std::cout << "Filename: " << filename << '\n';
-                    std::cout << "Key: " << key << '\n';
+                    std::cout << "Storing Mesh '" << filename << "' as " << key << '\n';
                     AddComponent<MeshComponent>(key.c_str(), WeakRef<Component>(),
                                                 std::string(filename).c_str());
                     continue;
@@ -79,12 +69,10 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
                     const char* filenameVert = assetElement->Attribute("filenameVert");
                     const char* filenameFrag = assetElement->Attribute("filenameFrag");
                     std::string key = std::string(asset_prefix(Asset_type::SHADER)) + name;
-                    std::cout << "Name: " << name << '\n';
-                    std::cout << "FilenameVer: " << filenameVert << '\n';
-                    std::cout << "filenameFrag: " << filenameFrag << '\n';
-                    std::cout << "Key: " << key << '\n';
-                    AddComponent<ShaderComponent>(key.c_str(), WeakRef<Component>(), "shaders/texturePhongVert.glsl",
-                                                  "shaders/texturePhongFrag.glsl");
+                    std::cout << "Storing Shader '" << filenameVert << "' and '" << filenameFrag << "' as " << key <<
+                        '\n';
+                    AddComponent<ShaderComponent>(key.c_str(), WeakRef<Component>(), filenameVert,
+                                                  filenameFrag);
                     continue;
                 }
 
@@ -93,9 +81,7 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
                     const char* name = assetElement->Attribute("name");
                     const char* filename = assetElement->Attribute("filename");
                     std::string key = std::string(asset_prefix(Asset_type::TEXTURE)) + name;
-                    std::cout << "Name: " << name << '\n';
-                    std::cout << "Filename: " << filename << '\n';
-                    std::cout << "Key: " << key << '\n';
+                    std::cout << "Storing Texture '" << filename << "' as " << key << '\n';
                     AddComponent<MaterialComponent>(key.c_str(), WeakRef<Component>(),
                                                     filename);
                 }
@@ -107,51 +93,35 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
         {
             std::cout << "Actors Found\n";
             for (XMLElement* actorElement = e->FirstChildElement(); actorElement != nullptr; actorElement = actorElement
-                ->NextSiblingElement())
+                 ->NextSiblingElement())
             {
                 ActorInfo actorInfo = {};
-                auto actor = std::make_shared<Actor>(WeakRef<Component>());
                 auto pieceColor = "white";
                 auto meshName = "Pawn";
-                for (XMLElement* componentElement = actorElement->FirstChildElement(); componentElement != nullptr; componentElement = componentElement
-                ->NextSiblingElement())
+                for (XMLElement* componentElement = actorElement->FirstChildElement(); componentElement != nullptr;
+                     componentElement = componentElement
+                     ->NextSiblingElement())
                 {
-                    std::cout << "Component [" << componentElement->Name() << ": " << componentElement->Value() << "] ";
                     if (std::string_view(componentElement->Name()) == "Mesh")
                     {
                         const char* name = componentElement->Attribute("name");
-                        meshName = name;
                         std::string key = std::string(asset_prefix(Asset_type::MESH)) + name;
-                        std::cout << "Key: " << key << '\n';
                         actorInfo.mesh_name = key;
-                        if (auto component = GetComponent<MeshComponent>(key.c_str()))
-                        {
-                            actor->AddComponent(component);
-                        }
+                        meshName = name;
                         continue;
                     }
                     if (std::string_view(componentElement->Name()) == "Shader")
                     {
                         const char* name = componentElement->Attribute("name");
                         std::string key = std::string(asset_prefix(Asset_type::SHADER)) + name;
-                        std::cout << "Key: " << key << '\n';
                         actorInfo.shader_name = key;
-                        if (auto component = GetComponent<ShaderComponent>(key.c_str()))
-                        {
-                            actor->AddComponent(component);
-                        }
                         continue;
                     }
                     if (std::string_view(componentElement->Name()) == "Texture")
                     {
                         const char* name = componentElement->Attribute("name");
                         std::string key = std::string(asset_prefix(Asset_type::TEXTURE)) + name;
-                        std::cout << "Key: " << key << '\n';
                         actorInfo.texture_name = key;
-                        if (auto component = GetComponent<MaterialComponent>(key.c_str()))
-                        {
-                            actor->AddComponent(component);
-                        }
                         continue;
                     }
                     if (std::string_view(componentElement->Name()) == "ChessData")
@@ -160,7 +130,7 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
                         pieceColor = color;
                     }
                 }
-                
+
                 auto chessPiece = Chess_pieces::PAWN;
                 if (std::string_view(meshName) == "Pawn") chessPiece = Chess_pieces::PAWN;
                 if (std::string_view(meshName) == "Knight") chessPiece = Chess_pieces::KNIGHT;
@@ -168,14 +138,18 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
                 if (std::string_view(meshName) == "Rook") chessPiece = Chess_pieces::ROOK;
                 if (std::string_view(meshName) == "Queen") chessPiece = Chess_pieces::QUEEN;
                 if (std::string_view(meshName) == "King") chessPiece = Chess_pieces::KING;
+
+                std::cout << "Adding actor: " << pieceColor << " " << meshName << '\n';
+                std::cout << "Mesh: '" << actorInfo.mesh_name << "'\n";
+                std::cout << "Shader: '" << actorInfo.shader_name << "'\n";
+                std::cout << "Texture: '" << actorInfo.texture_name << "'\n";
                 
                 if (std::string_view(pieceColor) == "white")
                 {
-                    white_pieces_.emplace_back(std::move(actor));
                     white_pieces_map_.insert({chessPiece, actorInfo});
-                } else
+                }
+                else
                 {
-                    black_pieces_.emplace_back(std::move(actor));
                     black_pieces_map_.insert({chessPiece, actorInfo});
                 }
             }
@@ -186,14 +160,7 @@ bool AssetManager::ReadManifest(const char* manifsetFilename)
         {
             std::cout << e->GetText() << '\n';
         }
-
-        /// loop over all the attributes (if any) 
-        for (const XMLAttribute* a = e->FirstAttribute(); a != nullptr; a = a->Next())
-        {
-            std::cout << "Attribute [" << a->Name() << ": " << a->Value() << "] ";
-        }
         std::cout << '\n';
-        
     }
     ListComponents();
 }
@@ -208,22 +175,22 @@ void AssetManager::ListComponents()
     std::cout << "Actors for white pieces loaded into AssetManager:" << std::endl;
     for (auto& [key, value] : white_pieces_map_)
     {
-        if (key == Chess_pieces::PAWN)  std::cout <<  "Pawn : " << value.mesh_name << std::endl;
+        if (key == Chess_pieces::PAWN) std::cout << "Pawn : " << value.mesh_name << std::endl;
         if (key == Chess_pieces::KNIGHT) std::cout << "Knight: " << value.mesh_name << std::endl;
         if (key == Chess_pieces::BISHOP) std::cout << "Bishop: " << value.mesh_name << std::endl;
-        if (key == Chess_pieces::ROOK)   std::cout << "Rook: " << value.mesh_name << std::endl;
-        if (key == Chess_pieces::QUEEN)  std::cout << "Queen: " << value.mesh_name << std::endl;
-        if (key == Chess_pieces::KING)   std::cout << "King: " << value.mesh_name << std::endl;   
+        if (key == Chess_pieces::ROOK) std::cout << "Rook: " << value.mesh_name << std::endl;
+        if (key == Chess_pieces::QUEEN) std::cout << "Queen: " << value.mesh_name << std::endl;
+        if (key == Chess_pieces::KING) std::cout << "King: " << value.mesh_name << std::endl;
     }
-    
+
     std::cout << "Actors for black pieces loaded into AssetManager:" << std::endl;
     for (auto& [key, value] : black_pieces_map_)
     {
-        if (key == Chess_pieces::PAWN)  std::cout <<  "Pawn : " << value.mesh_name << std::endl;
+        if (key == Chess_pieces::PAWN) std::cout << "Pawn : " << value.mesh_name << std::endl;
         if (key == Chess_pieces::KNIGHT) std::cout << "Knight: " << value.mesh_name << std::endl;
         if (key == Chess_pieces::BISHOP) std::cout << "Bishop: " << value.mesh_name << std::endl;
-        if (key == Chess_pieces::ROOK)   std::cout << "Rook: " << value.mesh_name << std::endl;
-        if (key == Chess_pieces::QUEEN)  std::cout << "Queen: " << value.mesh_name << std::endl;
-        if (key == Chess_pieces::KING)   std::cout << "King: " << value.mesh_name << std::endl;   
+        if (key == Chess_pieces::ROOK) std::cout << "Rook: " << value.mesh_name << std::endl;
+        if (key == Chess_pieces::QUEEN) std::cout << "Queen: " << value.mesh_name << std::endl;
+        if (key == Chess_pieces::KING) std::cout << "King: " << value.mesh_name << std::endl;
     }
 }

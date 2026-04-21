@@ -42,25 +42,6 @@ private:
     std::unordered_map<std::string, Ref<Component>> component_catalog_;
     std::unordered_map<Chess_pieces, ActorInfo> white_pieces_map_;
     std::unordered_map<Chess_pieces, ActorInfo> black_pieces_map_;
-
-public:
-    [[nodiscard]] std::unordered_map<Chess_pieces, ActorInfo> WhitePiecesMap() const
-    {
-        return white_pieces_map_;
-    }
-
-    [[nodiscard]] std::unordered_map<Chess_pieces, ActorInfo> BlackPiecesMap() const
-    {
-        return black_pieces_map_;
-    }
-
-private:
-    
-    
-    std::vector<std::shared_ptr<Actor>> white_pieces_;
-
-private:
-    std::vector<std::shared_ptr<Actor>> black_pieces_;
 public:
     /** Singleton disabled operations **/
     /** Prevents copying **/
@@ -103,4 +84,14 @@ public:
 
     /** Prints all the components from the manager **/;
     void ListComponents();
+    
+    [[nodiscard]] std::unordered_map<Chess_pieces, ActorInfo> WhitePiecesMap() const
+    {
+        return white_pieces_map_;
+    }
+
+    [[nodiscard]] std::unordered_map<Chess_pieces, ActorInfo> BlackPiecesMap() const
+    {
+        return black_pieces_map_;
+    }
 };
