@@ -8,11 +8,11 @@
 class ShaderComponent : public Component
 {
 private:
-    const char* vertexShaderFilename;
-    const char* fragmentShaderFilename;
-    const char* tessellationControllerFilename;
-    const char* tesselationEvaluatorFilename;
-    const char* geometryShaderFilename;
+    std::string vertexShaderFilename;
+    std::string fragmentShaderFilename;
+    std::string tessellationControllerFilename;
+    std::string tesselationEvaluatorFilename;
+    std::string geometryShaderFilename;
 
     GLuint shaderID;
     GLuint vertShaderID;

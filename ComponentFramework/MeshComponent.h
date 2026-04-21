@@ -2,13 +2,14 @@
 #include <glew.h>
 #include <Vector.h>
 #include <vector>
+#include <string>
 
 #include "Component.h"
 
 class MeshComponent : public Component
 {
 private:
-    const char* filename;
+    std::string filename;
     std::vector<MATH::Vec3> vertices;
     std::vector<MATH::Vec3> normals;
     std::vector<MATH::Vec2> uvCoords;

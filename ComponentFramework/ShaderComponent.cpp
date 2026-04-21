@@ -9,10 +9,11 @@ ShaderComponent::ShaderComponent(WeakRef<Component> parent_, const char* vertexS
                                  const char* tesselationControllerFilename, const char* tesselationEvaluatorFilename,
                                  const char* geometryShaderFilename) :
     Component(parent_),
-    vertexShaderFilename(vertexShaderFilename_), fragmentShaderFilename(fragmentShaderFilename_),
-    tessellationControllerFilename(tesselationControllerFilename),
-    tesselationEvaluatorFilename(tesselationEvaluatorFilename),
-    geometryShaderFilename(geometryShaderFilename), shaderID(0),
+    vertexShaderFilename(vertexShaderFilename_ ? vertexShaderFilename_ : ""),
+    fragmentShaderFilename(fragmentShaderFilename_ ? fragmentShaderFilename_ : ""),
+    tessellationControllerFilename(tesselationControllerFilename ? tesselationControllerFilename : ""),
+    tesselationEvaluatorFilename(tesselationEvaluatorFilename ? tesselationEvaluatorFilename : ""),
+    geometryShaderFilename(geometryShaderFilename ? geometryShaderFilename : ""), shaderID(0),
     vertShaderID(0),
     fragShaderID(0),
     tessCtrlShaderID(0),
@@ -88,8 +89,8 @@ bool ShaderComponent::CompileAttach()
 
     try
     {
-        vertText = ReadTextFile(vertexShaderFilename);
-        fragText = ReadTextFile(fragmentShaderFilename);
+        vertText = ReadTextFile(vertexShaderFilename.c_str());
+        fragText = ReadTextFile(fragmentShaderFilename.c_str());
         if (vertText == nullptr || fragText == nullptr)
         {
             return false;
@@ -139,10 +140,10 @@ bool ShaderComponent::CompileAttach()
             throw errorLog;
         }
 
-        if (tessellationControllerFilename != nullptr && tesselationEvaluatorFilename != nullptr)
+        if (!tessellationControllerFilename.empty() && !tesselationEvaluatorFilename.empty())
         {
-            tessCtrlText = ReadTextFile(tessellationControllerFilename);
-            tessEvalText = ReadTextFile(tesselationEvaluatorFilename);
+            tessCtrlText = ReadTextFile(tessellationControllerFilename.c_str());
+            tessEvalText = ReadTextFile(tesselationEvaluatorFilename.c_str());
 
             if (tessCtrlText == nullptr || tessEvalText == nullptr)
             {
@@ -187,16 +188,16 @@ bool ShaderComponent::CompileAttach()
                 throw errorLog;
             }
         }
-        else if ((tessellationControllerFilename != nullptr) != (tesselationEvaluatorFilename != nullptr))
+        else if (tessellationControllerFilename.empty() != tesselationEvaluatorFilename.empty())
         {
             /// XOR
             std::string errorLog = "To use tessilation there needs to be both a tessCtrlFilename and tessEvalFilename";
             throw errorLog;
         }
 
-        if (geometryShaderFilename != nullptr)
+        if (!geometryShaderFilename.empty())
         {
-            geomText = ReadTextFile(geometryShaderFilename);
+            geomText = ReadTextFile(geometryShaderFilename.c_str());
             if (geomText == nullptr)
             {
                 std::string errorMsg("Can't open file:");

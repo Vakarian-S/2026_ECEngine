@@ -1,10 +1,11 @@
 #pragma once
 #include <glew.h>
+#include <string>
 #include "Component.h"
 class MaterialComponent: public Component {
 private:
 	GLuint textureID;
-	const char* filename;
+	std::string filename;
 	bool LoadImage(const char* filename);
 public:
 	MaterialComponent(WeakRef<Component> parent_,const char* filename_);

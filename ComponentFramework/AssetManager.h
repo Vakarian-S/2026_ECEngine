@@ -1,8 +1,10 @@
 ﻿#pragma once
 #include <unordered_map>
 
+#include "Actor.h"
 #include "Component.h"
 #include "Debug.h"
+#include "scenes/Scene1.h"
 
 enum class Asset_type : uint8_t
 {
@@ -22,6 +24,13 @@ static const char* asset_prefix(Asset_type type)
     return "";
 }
 
+struct ActorInfo
+{
+    std::string mesh_name;
+    std::string shader_name;
+    std::string texture_name;
+};
+
 
 class AssetManager
 {
@@ -31,7 +40,27 @@ private:
     AssetManager() = default;
 
     std::unordered_map<std::string, Ref<Component>> component_catalog_;
+    std::unordered_map<Chess_pieces, ActorInfo> white_pieces_map_;
+    std::unordered_map<Chess_pieces, ActorInfo> black_pieces_map_;
 
+public:
+    [[nodiscard]] std::unordered_map<Chess_pieces, ActorInfo> WhitePiecesMap() const
+    {
+        return white_pieces_map_;
+    }
+
+    [[nodiscard]] std::unordered_map<Chess_pieces, ActorInfo> BlackPiecesMap() const
+    {
+        return black_pieces_map_;
+    }
+
+private:
+    
+    
+    std::vector<std::shared_ptr<Actor>> white_pieces_;
+
+private:
+    std::vector<std::shared_ptr<Actor>> black_pieces_;
 public:
     /** Singleton disabled operations **/
     /** Prevents copying **/
@@ -71,8 +100,7 @@ public:
 #endif
         return std::dynamic_pointer_cast<ComponentTemplate>(id->second);
     }
-    
+
     /** Prints all the components from the manager **/;
     void ListComponents();
-    
 };

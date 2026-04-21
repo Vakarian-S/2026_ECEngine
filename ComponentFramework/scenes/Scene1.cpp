@@ -195,22 +195,25 @@ bool Scene1::OnCreate()
                                                                mesh_filenames_[chessPiece].c_str());
         chess_piece_meshes_[chessPiece] = meshActor;
     }
-
-    /** Setup the Pieces on the board Iteration Galore **/
+    
+    /** Set up pieces with Data from the asset manager **/ 
     int index = 0;
-    for (auto const& color : {"textures/White Chess Base Colour.png", "textures/Black Chess Base Colour.png"})
+    for (auto map : {asset_manager_->WhitePiecesMap(), asset_manager_->BlackPiecesMap()})
     {
-        for (const auto chessPiece : {
-                 Chess_pieces::KING, Chess_pieces::PAWN, Chess_pieces::ROOK, Chess_pieces::QUEEN, Chess_pieces::BISHOP,
-                 Chess_pieces::KNIGHT
-             })
+        for (auto& [key, value] : map)
         {
-            for (const auto colPosition : GetColPositionListByPiece(chessPiece))
+            if (key == Chess_pieces::PAWN)  std::cout <<  "Pawn : " << value.mesh_name << std::endl;
+            if (key == Chess_pieces::KNIGHT) std::cout << "Knight: " << value.mesh_name << std::endl;
+            if (key == Chess_pieces::BISHOP) std::cout << "Bishop: " << value.mesh_name << std::endl;
+            if (key == Chess_pieces::ROOK)   std::cout << "Rook: " << value.mesh_name << std::endl;
+            if (key == Chess_pieces::QUEEN)  std::cout << "Queen: " << value.mesh_name << std::endl;
+            if (key == Chess_pieces::KING)   std::cout << "King: " << value.mesh_name << std::endl;   
+            for (const auto colPosition : GetColPositionListByPiece(key))
             {
                 auto actor = std::make_shared<Actor>(board_);
-                Ref<MeshComponent> mesh = chess_piece_meshes_[chessPiece];
-                actor->AddComponent<MeshComponent>(chess_piece_meshes_[chessPiece]);
-                actor->AddComponent<ShaderComponent>(asset_manager_->GetComponent<ShaderComponent>("shader_Default"));
+                actor->AddComponent<MeshComponent>(asset_manager_->GetComponent<MeshComponent>(value.mesh_name.c_str()));
+                actor->AddComponent<ShaderComponent>(asset_manager_->GetComponent<ShaderComponent>(value.shader_name.c_str()));
+                actor->AddComponent<MaterialComponent>(asset_manager_->GetComponent<MaterialComponent>(value.texture_name.c_str()));
                 auto rotationByColor = index
                                            ? QMath::angleAxisRotation(
                                                90.0f, Vec3(1.0f, 0.0f, 0.0f))
@@ -219,16 +222,15 @@ bool Scene1::OnCreate()
                                                180.0f, Vec3(0.0f, 1.0f, 0.0f));
                 actor->AddComponent<TransformComponent>(
                     WeakRef<Component>(), Vec3(
-                        GetRelativeTransformOnBoard(chessPiece == Chess_pieces::PAWN ? index * 5 + 1 : index * 7,
+                        GetRelativeTransformOnBoard(key == Chess_pieces::PAWN ? index * 5 + 1 : index * 7,
                                                     colPosition)),
                     rotationByColor
                     ,
                     Vec3(0.15f, 0.15f, 0.15f));
-                actor->AddComponent<MaterialComponent>(WeakRef<Component>(), color);
                 actor->OnCreate();
                 actor->ListComponents();
                 chess_piece_actors_.push_back(actor);
-                chess_piece_actors_map_[chessPiece].push_back(actor);
+                chess_piece_actors_map_[key].push_back(actor);
             }
         }
         index++;

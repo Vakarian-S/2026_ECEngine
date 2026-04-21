@@ -96,13 +96,13 @@ void MeshComponent::StoreMeshData(GLenum drawMode_)
 }
 
 MeshComponent::MeshComponent(WeakRef<Component> parent_, const char* filename_) :
-    Component(parent_), dataLength(0), drawMode(GL_TRIANGLES), VAO(0), VBO(0), filename(filename_)
+    Component(parent_), dataLength(0), drawMode(GL_TRIANGLES), VAO(0), VBO(0), filename(filename_ ? filename_ : "")
 {
 }
 
 bool MeshComponent::OnCreate()
 {
-    LoadModel(filename);
+    LoadModel(filename.c_str());
     StoreMeshData(drawMode);
     return true;
 }

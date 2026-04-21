@@ -2,7 +2,7 @@
 #include <SDL_image.h>
 
 MaterialComponent::MaterialComponent(WeakRef<Component> parent_, const char* filename_) :
-    Component(parent_), textureID(0), filename(filename_)
+    Component(parent_), textureID(0), filename(filename_ ? filename_ : "")
 {
 }
 
@@ -15,7 +15,7 @@ bool MaterialComponent::OnCreate()
 {
     if (isCreated == true) return true;
     isCreated = true;
-    return LoadImage(filename);
+    return LoadImage(filename.c_str());
 }
 
 bool MaterialComponent::LoadImage(const char* filename)
