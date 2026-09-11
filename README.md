@@ -134,6 +134,17 @@ It reflects:
 
 ---
 
+## AI Usage
+
+Generative AI was used to help prepare this repository for GitHub. It assisted with the following commits:
+
+* [`1b6fe88`](https://github.com/Vakarian-S/2026_ECEngine/commit/1b6fe88b2d94eca339426e2c3ebcca98e1f9c986) — Set up the `.gitignore`, untracked build output, and tracked the required assets
+* [`cd8b0d7`](https://github.com/Vakarian-S/2026_ECEngine/commit/cd8b0d7de46a81e0c6638af8ef5421e8de0d92e3) — Moved the third-party libraries into `vendor/` and updated the project paths
+* [`536906b`](https://github.com/Vakarian-S/2026_ECEngine/commit/536906b0a487a826b3a7b92e40ca768d76ae1cf8) — Renamed and moved the solution and project files
+* [`36fe080`](https://github.com/Vakarian-S/2026_ECEngine/commit/36fe080c0ada01c48ea63a1a9a69bc5a4bf9cf9b) — Drafted this README
+
+---
+
 ## License
 
 This repository is intended for **educational and portfolio purposes**.
